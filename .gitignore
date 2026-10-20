@@ -1,0 +1,29 @@
+# dépendances
+node_modules/
+
+# next.js
+.next/
+.next-prod/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# environnement
+.env*
+!.env.example
+
+# index : seule la graine data/seed.jsonl.gz est versionnée
+data/googlant.db*
+data/pois.db*
+data/*.log
+data/*.jsonl
+data/queue.txt
+
+# divers
+.DS_Store
+npm-debug.log*
+.vercel
+
+
+# binaires compilés (crawler Go, Katana)
+bin/

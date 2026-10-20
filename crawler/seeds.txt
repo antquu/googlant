@@ -1,0 +1,39 @@
+# Graines du crawler — une URL par ligne, les commentaires commencent par #.
+# Avec --scope seeds (défaut), seuls les liens vers ces domaines sont suivis.
+
+# GreLines — horaires temps réel
+https://www.grelines.fr/
+https://lyon.grelines.fr/
+https://saintetienne.grelines.fr/
+https://clermontferrand.grelines.fr/
+https://nancy.grelines.fr/
+
+# Villes
+https://fr.wikipedia.org/wiki/Grenoble
+https://fr.wikipedia.org/wiki/Lyon
+https://fr.wikipedia.org/wiki/Saint-%C3%89tienne
+https://fr.wikipedia.org/wiki/Clermont-Ferrand
+https://fr.wikipedia.org/wiki/Nancy
+https://fr.wikipedia.org/wiki/Tramway_de_Grenoble
+https://fr.wikipedia.org/wiki/Tramway_de_Lyon
+https://fr.wikipedia.org/wiki/M%C3%A9tro_de_Lyon
+https://fr.wikipedia.org/wiki/Tramway_de_Saint-%C3%89tienne
+https://fr.wikipedia.org/wiki/Tramway_de_Clermont-Ferrand
+https://fr.wikipedia.org/wiki/Tramway_de_Nancy
+https://fr.wikipedia.org/wiki/Transport_en_commun
+
+# Recherche d'information
+https://fr.wikipedia.org/wiki/Moteur_de_recherche
+https://fr.wikipedia.org/wiki/Robot_d%27indexation
+https://fr.wikipedia.org/wiki/PageRank
+https://fr.wikipedia.org/wiki/Okapi_BM25
+https://fr.wikipedia.org/wiki/Index_invers%C3%A9
+
+# Développement web
+https://developer.mozilla.org/fr/
+https://react.dev/
+https://nextjs.org/docs
+https://nodejs.org/fr
+https://www.typescriptlang.org/
+https://doc.rust-lang.org/book/
+https://docs.python.org/fr/3/

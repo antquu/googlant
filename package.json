@@ -1,0 +1,41 @@
+{
+  "name": "googlant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Googlant — moteur de recherche maison : crawler permanent, index SQLite FTS5, classement BM25 + PageRank, front Next.js.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "crawler": "tsx --disable-warning=ExperimentalWarning crawler/cluster.ts",
+    "db:import": "tsx --disable-warning=ExperimentalWarning crawler/db-tools.ts import",
+    "db:seed": "tsx --disable-warning=ExperimentalWarning crawler/db-tools.ts seed",
+    "db:pagerank": "tsx --disable-warning=ExperimentalWarning crawler/db-tools.ts pagerank",
+    "db:stats": "tsx --disable-warning=ExperimentalWarning crawler/db-tools.ts stats",
+    "search": "tsx --disable-warning=ExperimentalWarning crawler/search-cli.ts",
+    "crawler:build": "node scripts/build-crawler.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "lucide": "^0.468.0",
+    "lucide-react": "^0.468.0",
+    "maplibre-gl": "^5.24.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

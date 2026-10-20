@@ -1,0 +1,108 @@
+# Grands sites du web — survol large : page d'accueil + quelques pages chacun.
+#   npm run crawl:popular
+# Les sites qui bloquent les robots sont couverts par crawler/directory.json.
+
+# Vidéo, musique, streaming
+https://www.youtube.com/ max=6
+https://www.twitch.tv/ max=4
+https://www.dailymotion.com/ max=4
+https://www.netflix.com/fr/ max=4
+https://open.spotify.com/ max=3
+https://www.deezer.com/fr/ max=4
+https://www.canalplus.com/ max=3
+https://www.france.tv/ max=4
+https://www.arte.tv/fr/ max=4
+
+# Encyclopédies, savoir, outils
+https://www.wikipedia.org/ max=2
+https://en.wikipedia.org/wiki/Main_Page max=4
+https://fr.wiktionary.org/wiki/Wiktionnaire:Page_d%E2%80%99accueil max=3
+https://www.larousse.fr/ max=4
+https://www.openstreetmap.org/ max=3
+https://www.google.com/ max=2
+https://www.bing.com/ max=2
+https://duckduckgo.com/ max=2
+https://www.qwant.com/ max=2
+https://www.ecosia.org/ max=2
+https://translate.google.com/ max=1
+https://www.deepl.com/fr/translator max=3
+
+# Développement
+https://github.com/ max=6
+https://gitlab.com/ max=3
+https://stackoverflow.com/ max=4
+https://www.npmjs.com/ max=3
+https://vercel.com/ max=4
+https://www.w3schools.com/ max=4
+https://openai.com/ max=3
+https://www.anthropic.com/ max=4
+
+# Actualités
+https://www.lemonde.fr/ max=6
+https://www.lefigaro.fr/ max=5
+https://www.liberation.fr/ max=4
+https://www.francetvinfo.fr/ max=5
+https://www.20minutes.fr/ max=5
+https://www.ouest-france.fr/ max=4
+https://www.ledauphine.com/ max=5
+https://www.leprogres.fr/ max=5
+https://www.lamontagne.fr/ max=4
+https://www.estrepublicain.fr/ max=4
+https://www.bfmtv.com/ max=4
+https://www.lequipe.fr/ max=4
+https://www.bbc.com/ max=4
+https://www.nytimes.com/ max=3
+
+# Services publics et vie pratique
+https://www.service-public.fr/ max=5
+https://www.impots.gouv.fr/ max=4
+https://www.ameli.fr/ max=4
+https://www.francetravail.fr/ max=4
+https://www.caf.fr/ max=4
+https://www.laposte.fr/ max=4
+https://meteofrance.com/ max=4
+https://www.sncf-connect.com/ max=3
+https://www.ratp.fr/ max=3
+https://www.legifrance.gouv.fr/ max=3
+https://www.education.gouv.fr/ max=3
+
+# Commerce
+https://www.amazon.fr/ max=3
+https://www.leboncoin.fr/ max=3
+https://www.cdiscount.com/ max=3
+https://www.fnac.com/ max=3
+https://www.decathlon.fr/ max=3
+https://www.ikea.com/fr/fr/ max=3
+https://www.carrefour.fr/ max=3
+https://www.leroymerlin.fr/ max=3
+https://www.vinted.fr/ max=3
+https://www.booking.com/ max=3
+https://www.airbnb.fr/ max=3
+
+# Réseaux sociaux et communication
+https://www.reddit.com/ max=3
+https://www.linkedin.com/ max=2
+https://www.facebook.com/ max=2
+https://www.instagram.com/ max=2
+https://x.com/ max=2
+https://www.tiktok.com/ max=2
+https://www.whatsapp.com/ max=3
+https://discord.com/ max=3
+https://www.pinterest.fr/ max=2
+
+# Tech, opérateurs
+https://www.apple.com/fr/ max=4
+https://www.microsoft.com/fr-fr max=4
+https://www.samsung.com/fr/ max=3
+https://www.orange.fr/ max=3
+https://www.free.fr/ max=3
+https://www.sfr.fr/ max=3
+https://www.bouyguestelecom.fr/ max=3
+https://www.mozilla.org/fr/ max=3
+
+# Cuisine, culture, loisirs
+https://www.marmiton.org/ max=4
+https://www.allocine.fr/ max=4
+https://www.imdb.com/ max=3
+https://www.tripadvisor.fr/ max=3
+https://www.doctolib.fr/ max=3
