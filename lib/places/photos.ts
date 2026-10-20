@@ -41,8 +41,10 @@ async function wikidata(id: string, props = ["P18", "P8592"]): Promise<string[]>
 
 const GENERIC = new Set(["boulangerie", "patisserie", "pharmacie", "restaurant", "hotel", "cafe", "brasserie", "magasin", "boutique", "france", "place", "avenue", "centre", "grand", "petit", "saint", "sainte", "maison", "garage", "coiffure", "tabac", "presse", "pain"]);
 
-async function nearby(name: string, lat: number, lon: number): Promise<string[]> {
-  const words = fold(name).split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !GENERIC.has(w));
+async function nearby(name: string, city: string, lat: number, lon: number): Promise<string[]> {
+  // le nom de la ville ne compte pas : "Pharmacie de Monestier" ne doit pas valider une photo de "boîte à livres de Monestier"
+  const town = new Set(fold(city).split(/[^a-z0-9]+/));
+  const words = fold(name).split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !GENERIC.has(w) && !town.has(w));
   if (!words.length) return [];
   const params = new URLSearchParams({
     action: "query", format: "json", generator: "geosearch", ggscoord: `${lat}|${lon}`, ggsradius: "150", ggsnamespace: "6", ggslimit: "30",
@@ -104,8 +106,8 @@ async function website(url: string): Promise<string[]> {
 const cache = globalThis as unknown as { __photos?: Map<string, { at: number; photos: string[] }> };
 const store = (cache.__photos ??= new Map());
 
-export async function freePhotos(biz: Pick<Business, "name" | "lat" | "lon" | "photo" | "website" | "wikidata" | "brand">): Promise<string[]> {
-  const key = `${biz.name}|${biz.lat.toFixed(4)},${biz.lon.toFixed(4)}`;
+export async function freePhotos(biz: Pick<Business, "name" | "city" | "lat" | "lon" | "photo" | "website" | "wikidata" | "brand">): Promise<string[]> {
+  const key = `${biz.name}|${biz.city ?? ""}|${biz.lat.toFixed(4)},${biz.lon.toFixed(4)}`;
   const hit = store.get(key);
   if (hit && Date.now() - hit.at < (hit.photos.length ? 6 * 3600_000 : 5 * 60_000)) return hit.photos;
   const site = biz.website ? (/^https?:/.test(biz.website) ? biz.website : `https://${biz.website}`) : null;
@@ -115,7 +117,7 @@ export async function freePhotos(biz: Pick<Business, "name" | "lat" | "lon" | "p
     biz.wikidata ? wikidata(biz.wikidata) : Promise.resolve([]),
     biz.name.length > 3 ? article(biz.name, biz.lat, biz.lon) : Promise.resolve([]),
     biz.name.length > 3 ? wikipedia(biz.name, biz.lat, biz.lon) : Promise.resolve([]),
-    nearby(biz.name, biz.lat, biz.lon),
+    nearby(biz.name, biz.city ?? "", biz.lat, biz.lon),
   ]);
   // même fichier servi par Wikipédia et Commons : on compare sans la query string
   const photos = groups.flat().filter((u, i, all) => all.findIndex((o) => o.split("?")[0] === u.split("?")[0]) === i);

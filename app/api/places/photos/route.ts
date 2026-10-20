@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   const site = p.get("website") ?? "";
   const photos = await freePhotos({
     name: (p.get("name") ?? "").slice(0, 120),
+    city: (p.get("city") ?? "").slice(0, 80) || undefined,
     lat,
     lon,
     photo: p.get("photo")?.startsWith("https://") ? p.get("photo")! : undefined,

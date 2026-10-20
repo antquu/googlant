@@ -5800,3 +5800,53 @@ button.biz-photo {
     }
   }
 }
+/* le "i" se cale sur la ligne de l'adresse (2e ligne), et la lettre est centrée dans son rond */
+.result-head {
+  align-items: flex-start;
+}
+.result-head .why-btn {
+  margin-top: 17px;
+}
+.why-btn {
+  font: 700 10.5px/1 var(--sans);
+  font-style: normal;
+  padding: 0 0 0.5px;
+}
+
+/* "Pourquoi ce résultat ?" : un calque posé par-dessus la fiche ou l'encart (il ne les pousse pas),
+   qui arrive de la droite vers la gauche */
+@media (min-width: 901px) {
+  .serp-aside {
+    position: relative;
+  }
+  .why {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 8;
+    margin: 0;
+    background: var(--surface-elevated, var(--surface-l1));
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border-l2);
+    animation: why-from-right 0.45s var(--ease-spring) both;
+  }
+  .why[data-closing="1"] {
+    animation: why-to-right 0.28s var(--ease-standard) both;
+  }
+}
+@keyframes why-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes why-to-right {
+  to {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+}

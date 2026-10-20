@@ -9,6 +9,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
 import type { Place } from "@/lib/places/types";
+import { pinIcon, pinTone } from "../maps/pinIcon";
 
 const STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 const FALLBACK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
@@ -74,13 +75,15 @@ export default function PlacesMap({ places, center, selected, onSelect, showUser
     places.forEach((p, i) => {
       const el = document.createElement("div");
       el.className = "map-pin";
+      // même pin que Googlant Maps : couleur de la famille de commerce et son icône
+      el.dataset.tone = pinTone(p.category);
       const pin = document.createElement("button");
       pin.type = "button";
       pin.className = "map-marker";
       pin.setAttribute("aria-label", p.name);
-      const num = document.createElement("span");
-      num.textContent = still ? "" : String(i + 1);
-      pin.appendChild(num);
+      const glyph = document.createElement("span");
+      glyph.appendChild(pinIcon(p.category));
+      pin.appendChild(glyph);
       el.appendChild(pin);
       pin.addEventListener("click", (e) => {
         e.stopPropagation();

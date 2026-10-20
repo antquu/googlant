@@ -99,6 +99,7 @@ export function BusinessCard({ biz, showMedia = true, onDirections }: { biz: Bus
     if (biz.source !== "osm") return;
     setExtra(null);
     const params = new URLSearchParams({ name: biz.name, lat: String(biz.lat), lon: String(biz.lon) });
+    if (biz.city) params.set("city", biz.city);
     if (biz.photo) params.set("photo", biz.photo);
     if (biz.website) params.set("website", biz.website);
     if (biz.wikidata) params.set("wikidata", biz.wikidata);

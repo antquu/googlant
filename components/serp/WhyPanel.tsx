@@ -63,9 +63,21 @@ const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "
 
 export function WhyPanel({ query }: { query: string }) {
   const [info, setInfo] = useState<WhyInfo | null>(null);
+  const [closing, setClosing] = useState(false);
+  // repart vers la droite avant de disparaître
+  const close = () => {
+    setClosing(true);
+    setTimeout(() => {
+      setInfo(null);
+      setClosing(false);
+    }, 260);
+  };
 
   useEffect(() => {
-    const on = (e: Event) => setInfo((e as CustomEvent<WhyInfo>).detail);
+    const on = (e: Event) => {
+      setClosing(false);
+      setInfo((e as CustomEvent<WhyInfo>).detail);
+    };
     window.addEventListener(EVENT, on);
     return () => window.removeEventListener(EVENT, on);
   }, []);
@@ -80,10 +92,10 @@ export function WhyPanel({ query }: { query: string }) {
   const pagerank = (info.rank * 10).toFixed(1);
 
   return (
-    <section className="why" key={info.url} aria-label="Pourquoi ce résultat ?">
+    <section className="why" key={info.url} data-closing={closing ? "1" : undefined} aria-label="Pourquoi ce résultat ?">
       <header className="why-head">
         <h2>Pourquoi ce résultat ?</h2>
-        <button type="button" className="why-close" aria-label="Fermer" onClick={() => setInfo(null)}>
+        <button type="button" className="why-close" aria-label="Fermer" onClick={close}>
           <CloseIcon />
         </button>
       </header>
