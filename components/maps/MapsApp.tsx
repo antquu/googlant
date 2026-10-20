@@ -48,6 +48,7 @@ const MAP_HINTS = ["Boulangerie près d'ici", "Musée de Grenoble", "Pharmacie d
 interface Props {
   initialQuery: string;
   initialDir?: Spot | null;
+  initialPlace?: Business | null;
   approx?: { lat: number; lon: number } | null;
   start: { lat: number; lon: number; label: string; zoom: number };
   user: { lat: number; lon: number } | null;
@@ -94,15 +95,15 @@ function distance(m: number) {
   return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km`;
 }
 
-export function MapsApp({ initialQuery, initialDir = null, approx = null, start, user: initialUser }: Props) {
+export function MapsApp({ initialQuery, initialDir = null, initialPlace = null, approx = null, start, user: initialUser }: Props) {
   const handle = useRef<MapHandle | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
-  const [query, setQuery] = useState(initialQuery);
-  const [mode, setMode] = useState<Mode>(initialQuery ? "loading" : "home");
+  const [query, setQuery] = useState(initialPlace?.name ?? initialQuery);
+  const [mode, setMode] = useState<Mode>(initialPlace ? "detail" : initialQuery ? "loading" : "home");
   const [results, setResults] = useState<Place[]>([]);
   const [resultTitle, setResultTitle] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
-  const [detail, setDetail] = useState<Business | null>(null);
+  const [detail, setDetail] = useState<Business | null>(initialPlace);
   const [geo, setGeo] = useState<GeocodeResult | null>(null);
   const [areaLabel, setAreaLabel] = useState(start.label);
   const [dirty, setDirty] = useState(false);
@@ -137,6 +138,12 @@ export function MapsApp({ initialQuery, initialDir = null, approx = null, start,
     const url = q ? `/maps?q=${encodeURIComponent(q)}` : "/maps";
     window.history.replaceState(null, "", url);
   };
+
+  // fiche ouverte : son identifiant dans l'adresse, pour la retrouver en rechargeant ou en partageant le lien
+  useEffect(() => {
+    if (mode === "detail" && detail && /^(node|way|relation)[/][0-9]+$/.test(detail.id)) window.history.replaceState(null, "", `/maps?place=${detail.id}`);
+    else if (mode !== "detail" && window.location.search.includes("place=")) setUrl(query.trim());
+  }, [mode, detail]);
 
   const searchCategory = useCallback(async (q: string, center: { lat: number; lon: number }, label: string) => {
     const id = ++runId.current;
@@ -239,7 +246,7 @@ export function MapsApp({ initialQuery, initialDir = null, approx = null, start,
   }, []);
 
   useEffect(() => {
-    if (!initialQuery || initialDir) return;
+    if (!initialQuery || initialDir || initialPlace) return;
     const t = setTimeout(() => run(initialQuery), 450);
     return () => clearTimeout(t);
   }, []);

@@ -134,6 +134,9 @@ export function BusinessCard({ biz, showMedia = true, onDirections }: { biz: Bus
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [viewer, photos.length]);
+  // fiche OpenStreetMap : on l'ouvre dans Googlant Maps (sauf si on y est déjà)
+  const inMaps = /^(node|way|relation)[/][0-9]+$/.test(biz.id) && !onDirections ? `/maps?place=${biz.id}` : null;
+  const mapLink = inMaps ? { href: inMaps } : { href: biz.url, target: "_blank", rel: "noopener" };
   const directions = `/maps?dir=${biz.lat},${biz.lon}&dname=${encodeURIComponent(biz.name)}`;
 
   return (
@@ -147,7 +150,7 @@ export function BusinessCard({ biz, showMedia = true, onDirections }: { biz: Bus
             </button>
           )}
           {showMedia && (
-            <a href={biz.url} target="_blank" rel="noopener" className="biz-map" aria-label="Voir sur la carte">
+            <a {...mapLink} className="biz-map" aria-label="Voir sur la carte">
               <PlacesMap
                 places={[{ id: biz.id, name: biz.name, category: biz.category, lat: biz.lat, lon: biz.lon, distanceM: 0, url: biz.url }]}
                 center={biz}
@@ -232,7 +235,7 @@ export function BusinessCard({ biz, showMedia = true, onDirections }: { biz: Bus
             <div>
               <dt>Adresse :</dt>
               <dd>
-                <a href={biz.url} target="_blank" rel="noopener">
+                <a {...mapLink}>
                   {biz.address}
                 </a>
               </dd>

@@ -30,6 +30,7 @@ export type IndexOps = {
   siblings: (doc: IndexedDoc) => IndexedDoc[];
   submit: (url: string, clientId: string) => SubmitResult;
   pois: (q: string, lat: number | null, lon: number | null, limit: number) => PoiHit[] | null;
+  poi: (osm: string) => PoiHit | null;
   poisIn: (bbox: [number, number, number, number], limit: number) => PoiHit[] | null;
 };
 
@@ -41,9 +42,13 @@ export async function runLocal<K extends keyof IndexOps>(op: K, args: Parameters
     const [q, lat, lon, limit] = args as Parameters<IndexOps["pois"]>;
     return poi.searchPois(String(q), lat === null ? null : Number(lat), lon === null ? null : Number(lon), Math.min(Number(limit) || 6, 10)) as ReturnType<IndexOps[K]>;
   }
+  if (op === "poi") {
+    const osm = String((args as Parameters<IndexOps["poi"]>)[0]);
+    return (/^(node|way|relation)[/][0-9]+$/.test(osm) ? poi.poiById(osm) : null) as ReturnType<IndexOps[K]>;
+  }
   const db = getDb();
   if (!db) return null;
-  const ops: Omit<IndexOps, "pois" | "poisIn"> = {
+  const ops: Omit<IndexOps, "pois" | "poi" | "poisIn"> = {
     search: (q, o) => engine.search(db, q, o),
     news: (q, o) => engine.searchNews(db, q, o),
     images: (q) => engine.searchImages(db, q),
@@ -68,7 +73,7 @@ export async function runLocal<K extends keyof IndexOps>(op: K, args: Parameters
     if (b.length !== 4 || b.some((x) => !Number.isFinite(x))) return [] as ReturnType<IndexOps[K]>;
     return poi.poisInBox(b[0], b[1], b[2], b[3], Math.min(Number(limit) || 120, 200)) as ReturnType<IndexOps[K]>;
   }
-  const fn = ops[op as Exclude<K, "pois" | "poisIn">] as (...a: unknown[]) => ReturnType<IndexOps[K]>;
+  const fn = ops[op as Exclude<K, "pois" | "poi" | "poisIn">] as (...a: unknown[]) => ReturnType<IndexOps[K]>;
   return fn(...(args as unknown[]));
 }
 

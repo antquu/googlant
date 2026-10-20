@@ -88,6 +88,16 @@ export function searchPois(q: string, lat: number | null, lon: number | null, li
   return out;
 }
 
+/** Un lieu par son identifiant OpenStreetMap ("way/198949118"), pour les liens /maps?place=... */
+export function poiById(osm: string): PoiHit | null {
+  const db = poiDb();
+  if (!db) return null;
+  const r = db
+    .prepare("SELECT osm, name, kind, street, city, lat, lon, phone, website, hours, wikidata, brand, image FROM pois WHERE osm = ? LIMIT 1")
+    .get(osm) as unknown as PoiHit | undefined;
+  return r ? { ...renamed(r, r.osm), kind: frenchKind(r.kind) } : null;
+}
+
 /** Lieux dans un rectangle (carte zoomée), répartis sur la zone pour ne pas tout empiler au même endroit. */
 export function poisInBox(south: number, west: number, north: number, east: number, limit = 120): PoiHit[] | null {
   const db = poiDb();

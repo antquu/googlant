@@ -30,7 +30,7 @@ const { runLocal } = await import("../lib/index-api.ts");
 type Op = Parameters<typeof runLocal>[0];
 
 const PORT = Number(process.env.PORT ?? 3000);
-const OPS = new Set<Op>(["search", "news", "images", "suggest", "home", "live", "stats", "siblings", "submit", "pois", "poisIn"]);
+const OPS = new Set<Op>(["search", "news", "images", "suggest", "home", "live", "stats", "siblings", "submit", "pois", "poi", "poisIn"]);
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type" };
 const MAX_STREAMS = 400;
 

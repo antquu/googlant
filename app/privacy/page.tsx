@@ -25,7 +25,11 @@ export default function PrivacyPage() {
           <h2>Ce que nous ne faisons pas</h2>
           <ul>
             <li>Pas de compte, pas d&apos;identifiant, pas d&apos;historique de recherche conservé.</li>
-            <li>Pas de cookie publicitaire ni de traceur tiers, pas d&apos;outil d&apos;analyse d&apos;audience.</li>
+            <li>Pas de cookie publicitaire ni de traceur tiers.</li>
+            <li>
+              Seule mesure d&apos;audience : Vercel Analytics, sans cookie. Il compte les pages vues (page, pays, navigateur) de façon anonyme, sans
+              suivre une personne d&apos;une visite à l&apos;autre.
+            </li>
             <li>Les liens sortants sont ouverts sans en-tête Referer : les sites visités ne savent pas ce que vous avez cherché.</li>
           </ul>
 

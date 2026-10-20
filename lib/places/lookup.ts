@@ -271,6 +271,20 @@ async function indexLookup(query: string, near: { lat: number; lon: number } | n
   return best ? poiToBusiness(best) : null;
 }
 
+/** Fiche d'un lieu par son identifiant OpenStreetMap : notre index d'abord, sinon Nominatim. */
+export async function businessById(osm: string): Promise<Business | null> {
+  const m = osm.match(/^(node|way|relation)[/]([0-9]+)$/);
+  if (!m) return null;
+  const hit = await index("poi", osm).catch(() => null);
+  if (hit) return poiToBusiness(hit);
+  const look = await fetch(`https://nominatim.openstreetmap.org/lookup?osm_ids=${m[1][0].toUpperCase()}${m[2]}&format=jsonv2&extratags=1&addressdetails=1&accept-language=fr`, {
+    headers: { "User-Agent": UA },
+    signal: AbortSignal.timeout(6_000),
+  }).catch(() => null);
+  const [detail] = look?.ok ? ((await look.json()) as NominatimResult[]) : [];
+  return detail?.name ? toBusiness(detail) : null;
+}
+
 export async function findBusiness(query: string, near: { lat: number; lon: number } | null): Promise<Business | null> {
   const key = `${fold(query)}|${near ? `${near.lat.toFixed(1)},${near.lon.toFixed(1)}` : "-"}`;
   const hit = store.get(key);

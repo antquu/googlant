@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { Inter, Newsreader } from "next/font/google";
 import { getPrefs } from "@/lib/context";
 import { ConsoleBanner } from "@/components/ConsoleBanner";
+import { Analytics } from "@vercel/analytics/next";
 import { CookieBanner } from "@/components/CookieBanner";
 import { CONSENT_COOKIE } from "@/lib/consent";
 import { siteUrl } from "@/lib/site-url";
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ConsoleBanner />
         {children}
         {!consent && <CookieBanner />}
+        <Analytics />
       </body>
     </html>
   );
