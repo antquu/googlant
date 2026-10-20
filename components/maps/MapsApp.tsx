@@ -53,7 +53,7 @@ interface Props {
   user: { lat: number; lon: number } | null;
 }
 
-// lieu de notre index OpenStreetMap → fiche affichable tout de suite (sans nouvelle requête)
+// lieu de notre index OpenStreetMap -> fiche affichable tout de suite (sans nouvelle requête)
 function poiToBusiness(p: { osm: string; name: string; kind: string; street?: string | null; city?: string | null; lat: number; lon: number; phone?: string | null; website?: string | null; hours?: string | null; wikidata?: string | null; brand?: string | null; image?: string | null }): Business {
   const img = p.image?.startsWith("https://") ? p.image : p.image ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(p.image.replace(/^File:/i, ""))}?width=640` : undefined;
   return {

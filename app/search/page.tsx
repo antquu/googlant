@@ -19,6 +19,7 @@ import { fold } from "@/lib/search/tokenizer";
 import { detectLocal } from "@/lib/places/intent";
 import { SearchIcon } from "@/components/icons";
 import { BusinessPanel } from "@/components/places/BusinessPanel";
+import { findBusiness } from "@/lib/places/lookup";
 import { LocalPack } from "@/components/places/LocalPack";
 import { AdItem } from "@/components/serp/AdItem";
 import { KnowledgePanel, SideAd } from "@/components/serp/Aside";
@@ -26,6 +27,7 @@ import { ImageGrid } from "@/components/serp/ImageGrid";
 import { ImagePack } from "@/components/serp/ImagePack";
 import { LeaveCard } from "@/components/serp/LeaveCard";
 import { LoadMore } from "@/components/serp/LoadMore";
+import { WhyPanel } from "@/components/serp/WhyPanel";
 import { rivalFor } from "@/lib/search/rivals";
 import { Pager } from "@/components/serp/Pager";
 import { ResultItem } from "@/components/serp/ResultItem";
@@ -64,13 +66,18 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   const packTitle = local.category ? local.category.label : "Googlant Maps";
 
   const wantPack = tab === "all" && page === 1 && !/(^|\s)-?[a-z]+:\S/i.test(q);
-  const [res, packRaw] = await Promise.all([
+  // fiche établissement préparée en même temps que les résultats (au plus 2 s, sinon le navigateur la cherche)
+  const bizEarly = showBusiness
+    ? Promise.race([findBusiness(q, center).catch(() => null), new Promise<undefined>((ok) => setTimeout(() => ok(undefined), 2000))])
+    : Promise.resolve(undefined);
+  const [res, packRaw, bizInitial] = await Promise.all([
     tab === "images"
       ? null
       : tab === "news"
         ? index("news", q, { perPage: prefs.perPage, city: loc?.city })
         : index("search", q, { page, perPage: prefs.perPage, city: loc?.city, autoCorrect: sp.exact !== "1" }),
     wantPack ? index("images", q) : null,
+    bizEarly,
   ]);
   const packImages = (packRaw ?? []).slice(0, 10).map((i) => ({ src: i.src, alt: i.alt, pageUrl: i.page.url, host: i.page.host }));
   const ownImages = tab === "images" ? ((await index("images", q)) ?? []) : [];
@@ -101,7 +108,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   }
   const pages = webAll ? Math.min(10, webAll.more ? page + 1 : page) : res ? Math.min(50, Math.ceil(res.total / res.perPage)) : 0;
   const ads = wantPack ? selectAds(q, loc) : [];
-  // « google », « bing »… : on propose d'y aller directement (sous les annonces, au-dessus des résultats)
+  // "google", "bing"... : on propose d'y aller directement (sous les annonces, au-dessus des résultats)
   const rival = tab === "all" && page === 1 ? rivalFor(q) : null;
 
   const parsed = parseQuery(q);
@@ -226,7 +233,8 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             </div>
 
             <aside className="serp-aside">
-              {showBusiness && <BusinessPanel query={q} near={center} />}
+              <WhyPanel query={q} />
+              {showBusiness && <BusinessPanel query={q} near={center} initial={bizInitial} />}
               {showPanel && !showBusiness && top && <KnowledgePanel doc={top.doc} siblings={siblings} />}
               {sideAd && <SideAd slot={sideAd} />}
             </aside>

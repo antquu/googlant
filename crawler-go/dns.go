@@ -1,9 +1,9 @@
 // Googlant by antquu (github.com/antquu)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Résolution DNS du crawler : cache en mémoire, résolveurs publics et nombre de requêtes DNS
-// simultanées limité. Sans ça, des milliers de connexions en parallèle saturent le résolveur
-// local (et la box) et finissent en « i/o timeout ».
+// Résolution DNS du crawler : cache en mémoire et nombre de requêtes DNS simultanées limité.
+// Sans ça, des milliers de connexions en parallèle saturent le résolveur (et la box) et finissent
+// en "i/o timeout". Les DNS publics ne servent que si GOOGLANT_PUBLIC_DNS=1.
 
 package main
 

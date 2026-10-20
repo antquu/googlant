@@ -9,7 +9,7 @@ import { useState } from "react";
 import type { Rival } from "@/lib/search/rivals";
 import { ArrowRightIcon } from "../icons";
 
-// on cherche « google » ou « bing » sur Googlant : on demande simplement où aller
+// on cherche "google" ou "bing" sur Googlant : on demande simplement où aller
 export function LeaveCard({ rival }: { rival: Rival }) {
   const [closing, setClosing] = useState(false);
   const [gone, setGone] = useState(false);

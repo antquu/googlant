@@ -244,7 +244,7 @@ export function Directions({ destination, user, onClose, onRoute, onLocate }: Pr
     onRoute(null, null, destination);
   }, []);
 
-  // départ et arrivée choisis (suggestion, « Ma position » ou destination déjà remplie) :
+  // départ et arrivée choisis (suggestion, "Ma position" ou destination déjà remplie) :
   // l'itinéraire se calcule tout seul, et se recalcule après une inversion ou un changement de filtre
   const ready = (text: string, spot: Spot | null) => text.trim() === MY_POSITION || (!!spot && spot.label === text && Number.isFinite(spot.lat));
   const spotKey = (text: string, spot: Spot | null) => (text.trim() === MY_POSITION ? "moi" : `${spot?.lat},${spot?.lon}`);

@@ -20,7 +20,7 @@ export function FooterStats({ initial }: { initial: LiveStats }) {
     return () => clearInterval(id);
   }, []);
   const online = stats.crawlerAt !== null && now !== null && now - stats.crawlerAt < 60_000;
-  // « Index » = dernière activité du crawler (publiée toutes les 5 s), pas le dernier calcul du PageRank
+  // "Index" = dernière activité du crawler (publiée toutes les 5 s), pas le dernier calcul du PageRank
   const indexed = stats.crawlerAt ? timeAgo(new Date(stats.crawlerAt).toISOString(), now ?? stats.crawlerAt) : stats.builtAt ? timeAgo(stats.builtAt) : "—";
 
   return (

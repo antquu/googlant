@@ -2,7 +2,7 @@
 
 Un moteur de recherche fait maison : mon propre crawler, mon propre index, mon propre classement, et un site Next.js en dark mode.
 
-Je voulais comprendre comment marche un moteur de recherche « en vrai », pas juste appeler une API. Au final, il y a un crawler qui tourne 24h/24 sur une petite VM chez moi, un site hébergé sur Vercel qui l'interroge, une carte façon Google Maps avec itinéraires, et une fiche établissement quand on cherche un commerce.
+Je voulais comprendre comment marche un moteur de recherche "en vrai", pas juste appeler une API. Au final, il y a un crawler qui tourne 24h/24 sur une petite VM chez moi, un site hébergé sur Vercel qui l'interroge, une carte façon Google Maps avec itinéraires, et une fiche établissement quand on cherche un commerce.
 
 > Projet perso d'étudiant, pas un produit. Ça marche bien pour un index de quelques dizaines de milliers de pages, mais ça ne remplace évidemment pas Google 🙂
 
@@ -11,10 +11,10 @@ Je voulais comprendre comment marche un moteur de recherche « en vrai », pas j
 ## Ce que ça fait
 
 **Recherche**
-- Index maison avec correction des fautes (« pyhton » → python) et suggestions pendant la frappe.
-- Les opérateurs de Google : `"phrase exacte"`, `-mot`, `site:` / `-site:`, `filetype:pdf`, `intitle:`, `inurl:`, `lang:en`, `after:2025-01`, `before:2024`. Le menu « Outils » les remplit pour toi.
-- Onglets Tout, Images, Maps, Actualités. Un bandeau d'images au milieu des résultats, les PDF marqués comme tels, et un bouton « Charger plus » au lieu des pages.
-- Si tu cherches « google » ou « bing », Googlant te propose simplement d'y aller.
+- Index maison avec correction des fautes (pyhton devient python) et suggestions pendant la frappe.
+- Les opérateurs de Google : `"phrase exacte"`, `-mot`, `site:` / `-site:`, `filetype:pdf`, `intitle:`, `inurl:`, `lang:en`, `after:2025-01`, `before:2024`. Le menu "Outils" les remplit pour toi.
+- Onglets Tout, Images, Maps, Actualités. Un bandeau d'images au milieu des résultats, les PDF marqués comme tels, et un bouton "Charger plus" au lieu des pages.
+- Si tu cherches "google" ou "bing", Googlant te propose simplement d'y aller.
 
 **Googlant Maps** (`/maps`)
 - Carte plein écran avec deux onglets : Explorer et Itinéraire.
@@ -25,7 +25,7 @@ Je voulais comprendre comment marche un moteur de recherche « en vrai », pas j
 **Le reste**
 - Chiffres en direct en bas de page (pages, sites, pages/minute), sans recharger.
 - Pas de compte, pas de pistage. Un bandeau cookies, et si on refuse, la position n'est jamais gardée.
-- Résultats sponsorisés pour GreLines, choisis selon la recherche et la ville, sans profilage, toujours marqués « Sponsorisé ».
+- Résultats sponsorisés pour GreLines, choisis selon la recherche et la ville, sans profilage, toujours marqués "Sponsorisé".
 - Aperçu soigné quand on partage un lien (iMessage, Discord, X…).
 
 Côté design, je me suis beaucoup inspiré de [Grokipedia](https://grokipedia.com) : fond quasi noir, titres en serif (Newsreader), livres en 3D qui flottent et font un tour sur eux-mêmes, étagère dont les livres sortent quand on passe dessus.
@@ -43,7 +43,7 @@ navigateur ──► site Next.js (Vercel) ──► HTTPS + jeton ──► ser
 - **Chez moi** (une VM Proxmox, 4 cœurs, 2,6 Go de RAM) : le crawler, les bases SQLite et un petit serveur d'index sans Next.js (`crawler/index-server.ts`).
 - **Entre les deux** : Tailscale Funnel publie le serveur d'index sur une adresse HTTPS fixe en `*.ts.net`, sans ouvrir de port sur la box. C'est gratuit.
 
-Limite évidente : si la VM ou la box s'éteint, les recherches ne marchent plus (le site affiche « index injoignable »).
+Limite évidente : si la VM ou la box s'éteint, les recherches ne marchent plus (le site affiche "index injoignable").
 
 ## Le crawler
 
@@ -61,7 +61,7 @@ Quelques règles :
 - Il repasse sur les pages déjà vues : plus souvent si elles changent, de moins en moins sinon (de 1 h à 30 jours).
 - Les 404 sont supprimées, les doublons ignorés, et il ne garde que le français et l'anglais.
 - Les logos, icônes et bandeaux ne sont pas gardés comme images.
-- Quand quelqu'un propose un site (« Un site manque ? » sur l'accueil), il lit ses sitemaps et lance [Katana](https://github.com/projectdiscovery/katana) dessus pour trouver les pages cachées dans le JavaScript.
+- Quand quelqu'un propose un site ("Un site manque ?" sur l'accueil), il lit ses sitemaps et lance [Katana](https://github.com/projectdiscovery/katana) dessus pour trouver les pages cachées dans le JavaScript.
 
 **Attention à la box.** J'ai appris à mes dépens qu'une Livebox ne supporte pas 1 500 connexions ouvertes en même temps : elle sature et plus rien ne marche dans la maison. Du coup :
 

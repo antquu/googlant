@@ -209,7 +209,7 @@ function candidates(db: DatabaseSync, q: ParsedQuery): { list: Candidate[]; tota
       .prepare(`SELECT pages_fts.rowid AS id, -${BM25} AS bm FROM pages_fts${siteJoin} WHERE pages_fts MATCH ? ORDER BY ${BM25} LIMIT ${POOL}`)
       .all(...siteArgs, withCols(match)) as { id: number; bm: number }[];
 
-  // uniquement des filtres (« intitle:grenoble », « site:x.fr filetype:pdf ») : on liste les pages par popularité
+  // uniquement des filtres ("intitle:grenoble", "site:x.fr filetype:pdf") : on liste les pages par popularité
   if (!q.terms.length) {
     const rows = cols
       ? (db.prepare(`SELECT pages_fts.rowid AS id, -${BM25} AS bm FROM pages_fts${siteJoin} WHERE pages_fts MATCH ? ORDER BY ${BM25} LIMIT ${POOL}`).all(...siteArgs, cols) as { id: number; bm: number }[])
@@ -416,7 +416,7 @@ export interface ImageHit {
   page: IndexedDoc;
 }
 
-// logos, favicons, icônes, boutons, avatars, pixels de suivi… : pas de vraies images à montrer
+// logos, favicons, icônes, boutons, avatars, pixels de suivi... : pas de vraies images à montrer
 export const JUNK_IMAGE = /(logo|favicon|icon|sprite|avatar|gravatar|badge|button|btn[-_]|pixel|spacer|blank\.|placeholder|emoji|smiley|banner-ad|\/ads?\/|rating|stars?[-_.]|arrow|loader|loading|spinner|social|share|facebook|twitter|linkedin|instagram|youtube-|whatsapp|pinterest|flag[-_/]|cookie|captcha|qr[-_]?code|header|footer|bandeau|picto|numero[-_]?vert|type[-_]article|default[-_.]|no[-_]?image|thumbnail[-_]default)/i;
 export const JUNK_ALT = /^(logo|icône|icon|image|photo|picture|img|avatar|banner|bannière|button|bouton)\b|\blogo\b/i;
 
@@ -451,7 +451,7 @@ export function searchImages(db: DatabaseSync, raw: string, limit = 240): ImageH
     .map((r) => {
       const page = pages.get(r.page_id);
       if (!page) return null;
-      // texte alternatif = nom du site (« Beendiz ») ou simple étiquette (« Article ») : un logo ou un pictogramme
+      // texte alternatif = nom du site ("Beendiz") ou simple étiquette ("Article") : un logo ou un pictogramme
       const alt = fold(r.alt.trim());
       if (alt === fold(page.siteName) || alt === fold(page.host.split(".")[0]) || /^(article|actualite|actu|news|image|photo|video|vignette|illustration)s?$/.test(alt)) return null;
       const terms = new Set(tokenize(`${r.alt} ${page.title}`));

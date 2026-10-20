@@ -4,7 +4,7 @@
  *
  * Mini speedtests de la connexion de la maison, pour que le crawler ralentisse quand la box
  * commence à saturer : latence (connexion TCP vers Cloudflare et Google) toutes les 20 s, et un
- * petit téléchargement de 1 Mo toutes les 2 min. On compare à la « normale » mesurée au calme.
+ * petit téléchargement de 1 Mo toutes les 2 min. On compare à la "normale" mesurée au calme.
  */
 
 import { connect } from "node:net";
@@ -77,7 +77,7 @@ export class NetMonitor {
     if (latencyMs !== null) this.latencies.push(latencyMs);
     if (this.latencies.length > 90) this.latencies.shift();
 
-    // « normale » : les meilleures mesures récentes (la connexion au calme)
+    // "normale" : les meilleures mesures récentes (la connexion au calme)
     const sortedL = [...this.latencies].sort((a, b) => a - b);
     const baselineMs = sortedL.length ? sortedL[Math.floor(sortedL.length * 0.1)] : null;
     const sortedS = [...this.speeds].sort((a, b) => b - a);

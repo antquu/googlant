@@ -25,7 +25,7 @@ const RIVALS: (Rival & { words: string[] })[] = [
   { name: "Lilo", url: "https://www.lilo.org", host: "lilo.org", words: ["lilo", "lilo.org"] },
 ];
 
-/** La recherche est-elle juste le nom d'un autre moteur (« google », « bing.com »…) ? */
+/** La recherche est-elle juste le nom d'un autre moteur ("google", "bing.com"...) ? */
 export function rivalFor(query: string): Rival | null {
   const q = fold(query.trim()).replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/$/, "");
   const hit = RIVALS.find((r) => r.words.includes(q));

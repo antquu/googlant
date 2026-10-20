@@ -186,7 +186,7 @@ export default function MapCanvas({ initial, places, selected, pin, user, origin
     };
   }, [originLat, originLon]);
 
-  // ─── lieux du quartier, comme Google Maps : pastilles avec l'icône du commerce, le nom de plus près
+  // --- lieux du quartier, comme Google Maps : pastilles avec l'icône du commerce, le nom de plus près
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !showPois) return;

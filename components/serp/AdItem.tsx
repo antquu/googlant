@@ -7,7 +7,7 @@ import type { AdSlot } from "@/lib/ads/select";
 import { breadcrumb } from "@/lib/format";
 import { Favicon } from "../Favicon";
 
-// présenté comme un résultat ordinaire, seule la mention « Sponsorisé » le distingue
+// présenté comme un résultat ordinaire, seule la mention "Sponsorisé" le distingue
 export function AdItem({ slot, index }: { slot: AdSlot; index: number }) {
   const c = slot.campaign;
   return (

@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     seen.add(k);
     return true;
   });
-  // homonymes (rue « Carrefour » dans 30 villages) : les plus proches d'abord, et pas ceux à l'autre bout de la France
+  // homonymes (rue "Carrefour" dans 30 villages) : les plus proches d'abord, et pas ceux à l'autre bout de la France
   if (lat !== null && lon !== null) {
     const here = { lat, lon };
     const ranked = suggestions.map((s, i) => ({ s, i, km: distanceKm(here, s) }));

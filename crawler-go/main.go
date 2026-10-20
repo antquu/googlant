@@ -5,8 +5,8 @@
 // site et analyse des pages sur tous les cœurs. Il ne touche pas à la base : crawler/daemon.ts
 // (--engine go) lui envoie les URLs à visiter sur l'entrée standard et indexe ce qu'il renvoie.
 //
-//   entrée  : {"id":1,"url":"https://…"}            une ligne par URL
-//   sortie  : {"id":1,"kind":"html","status":200,"finalUrl":"…","page":{…}}
+//   entrée  : {"id":1,"url":"https://..."}            une ligne par URL
+//   sortie  : {"id":1,"kind":"html","status":200,"finalUrl":"...","page":{...}}
 
 package main
 
@@ -31,7 +31,7 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-// pages en latin-1, windows-1252… : conversion en UTF-8 d'après l'en-tête ou la balise <meta charset>
+// pages en latin-1, windows-1252... : conversion en UTF-8 d'après l'en-tête ou la balise <meta charset>
 func toUTF8(body []byte, contentType string) []byte {
 	if utf8.Valid(body) {
 		return body
@@ -73,7 +73,7 @@ func main() {
 	flag.Parse()
 
 	// plafonds absolus, quels que soient les réglages : une box grand public garde chaque connexion
-	// ~2 min dans sa table NAT, même fermée. 25 nouvelles/s ≈ 3 000 entrées, elle tient sans planter.
+	// ~2 min dans sa table NAT, même fermée. 25 nouvelles/s ~ 3 000 entrées, elle tient sans planter.
 	if *maxConns > hardMaxConns {
 		fmt.Fprintf(os.Stderr, "max-conns %d ramené à %d pour protéger la box\n", *maxConns, hardMaxConns)
 		*maxConns = hardMaxConns
@@ -98,7 +98,7 @@ func main() {
 	c.IgnoreRobotsTxt = false
 	c.SetRequestTimeout(*timeout)
 	// la politesse par site (une page à la fois, puis -delay) est assurée par la file côté Node :
-	// une LimitRule « * » de Colly limiterait l'ensemble des sites à la fois, pas chaque site
+	// une LimitRule "*" de Colly limiterait l'ensemble des sites à la fois, pas chaque site
 	_ = delay
 	dialer := &net.Dialer{Timeout: 6 * time.Second, KeepAlive: 30 * time.Second}
 	limiter := newConnLimiter(*maxConns, *connRate)

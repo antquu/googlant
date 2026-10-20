@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// Images plus légères : les photos Wikimedia (musées, monuments…) sont souvent énormes, on demande
+// Images plus légères : les photos Wikimedia (musées, monuments...) sont souvent énormes, on demande
 // leurs miniatures aux tailles standard. Les autres images restent d'origine : mesuré, un service de
 // redimensionnement les ralentissait (la plupart sont déjà petites).
 
@@ -23,7 +23,7 @@ export function sized(url: string | undefined | null, width: number): string {
       return u.toString();
     }
     if (u.hostname === "upload.wikimedia.org") {
-      // …/thumb/a/ab/Fichier.jpg/960px-Fichier.jpg → même chose à la bonne largeur
+      // .../thumb/a/ab/Fichier.jpg/960px-Fichier.jpg -> même chose à la bonne largeur
       if (/\/\d+px-[^/]+$/.test(u.pathname)) return `${u.origin}${u.pathname.replace(/\/\d+px-([^/]+)$/, `/${wikiStep(width)}px-$1`)}`;
       return url;
     }

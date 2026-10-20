@@ -35,14 +35,20 @@ const RouteIcon = () => (
   </svg>
 );
 
-export function BusinessPanel({ query, near }: { query: string; near: { lat: number; lon: number } | null }) {
-  const [biz, setBiz] = useState<Business | null>(null);
-  const [loading, setLoading] = useState(true);
+export function BusinessPanel({ query, near, initial }: { query: string; near: { lat: number; lon: number } | null; initial?: Business | null }) {
+  // fiche déjà trouvée par le serveur : affichée tout de suite, sans requête
+  const [biz, setBiz] = useState<Business | null>(initial ?? null);
+  const [loading, setLoading] = useState(initial === undefined);
 
   const lat = near?.lat;
   const lon = near?.lon;
 
   useEffect(() => {
+    if (initial !== undefined) {
+      setBiz(initial);
+      setLoading(false);
+      return;
+    }
     setBiz(null);
     setLoading(true);
     const ctrl = new AbortController();
@@ -61,7 +67,7 @@ export function BusinessPanel({ query, near }: { query: string; near: { lat: num
         if (err.name !== "AbortError") setLoading(false);
       });
     return () => ctrl.abort();
-  }, [query, lat, lon]);
+  }, [query, lat, lon, initial]);
 
   if (loading)
     return (

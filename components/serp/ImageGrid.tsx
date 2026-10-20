@@ -25,7 +25,7 @@ const PAGE = 40;
 export function ImageGrid({ images }: { images: GridImage[] }) {
   const [broken, setBroken] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<number | null>(null);
-  // 40 images d'abord (chargement rapide), 40 de plus à chaque « Charger plus »
+  // 40 images d'abord (chargement rapide), 40 de plus à chaque "Charger plus"
   const [count, setCount] = useState(PAGE);
   const usable = images.filter((i) => !broken.has(i.src));
   const visible = usable.slice(0, count);

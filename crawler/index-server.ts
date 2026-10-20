@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Serveur d'index autonome (sans Next.js) pour la machine du crawler : le site tourne ailleurs
- * (localhost, Vercel…) et l'interroge avec GOOGLANT_INDEX_URL.
+ * (localhost, Vercel...) et l'interroge avec GOOGLANT_INDEX_URL.
  *
  *   POST /api/index         opérations de recherche (jeton GOOGLANT_INDEX_TOKEN)
  *   GET  /api/live          chiffres en direct + dernières pages indexées
@@ -58,7 +58,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-// ─── flux en direct : un seul calcul toutes les 2 s, diffusé à tous les navigateurs connectés
+// --- flux en direct : un seul calcul toutes les 2 s, diffusé à tous les navigateurs connectés
 const streams = new Set<ServerResponse>();
 let last = "";
 let ticker: ReturnType<typeof setInterval> | null = null;

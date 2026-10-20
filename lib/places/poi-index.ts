@@ -10,6 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { distanceKm } from "../geo/cities";
 import { fold } from "../search/tokenizer";
 import { frenchKind } from "./labels";
+import { originalNamesFor, renamed } from "./overrides";
 import { cellsAround } from "./poi-cell";
 
 export interface PoiHit {
@@ -62,10 +63,15 @@ export function searchPois(q: string, lat: number | null, lon: number | null, li
     rows = db.prepare(sql).all(`{name kind city} : (${text}) AND cell : (${cellsAround(lat, lon).join(" OR ")})`) as unknown as PoiHit[];
   }
   if (rows.length < limit) rows = [...rows, ...(db.prepare(sql).all(`{name kind city} : (${text})`) as unknown as PoiHit[])];
+  // lieux renommés à la main : "pharmacie de mon" trouve aussi "Pharmacie Reymermier"
+  for (const original of originalNamesFor(q)) {
+    const w = fold(original).split(/[^a-z0-9]+/).filter(Boolean);
+    if (w.length) rows = [...(db.prepare(sql).all(`{name} : (${w.map((x) => `"${x}"`).join(" AND ")})`) as unknown as PoiHit[]), ...rows];
+  }
 
   const first = words[0];
   const scored = rows.map((r) => {
-    const name = fold(r.name);
+    const name = fold(renamed(r, r.osm).name);
     const km = lat !== null && lon !== null ? distanceKm({ lat, lon }, r) : 0;
     // le nom qui commence par ce qu'on tape passe devant, puis la distance
     // tous les mots dans le nom (pas seulement dans la ville) : nettement devant
@@ -75,8 +81,8 @@ export function searchPois(q: string, lat: number | null, lon: number | null, li
   scored.sort((a, b) => a.score - b.score);
   const out: PoiHit[] = [];
   for (const { r } of scored) {
-    if (out.some((o) => o.name === r.name && Math.abs(o.lat - r.lat) + Math.abs(o.lon - r.lon) < 0.002)) continue;
-    out.push({ ...r, kind: frenchKind(r.kind) });
+    if (out.some((o) => o.osm === r.osm || (o.name === renamed(r, r.osm).name && Math.abs(o.lat - r.lat) + Math.abs(o.lon - r.lon) < 0.002))) continue;
+    out.push({ ...renamed(r, r.osm), kind: frenchKind(r.kind) });
     if (out.length >= limit) break;
   }
   return out;
@@ -93,7 +99,7 @@ export function poisInBox(south: number, west: number, north: number, east: numb
        FROM pois WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? LIMIT 3000`,
     )
     .all(south, north, west, east) as unknown as PoiHit[];
-  // grille 10 × 10 : au plus quelques lieux par case, en gardant d'abord ceux qui ont des infos
+  // grille 10 x 10 : au plus quelques lieux par case, en gardant d'abord ceux qui ont des infos
   const per = Math.max(1, Math.ceil(limit / 100));
   const cells = new Map<string, number>();
   const score = (p: PoiHit) => (p.hours ? 2 : 0) + (p.website ? 1 : 0) + (p.phone ? 1 : 0) + (p.wikidata ? 3 : 0);
@@ -103,7 +109,7 @@ export function poisInBox(south: number, west: number, north: number, east: numb
     const n = cells.get(key) ?? 0;
     if (n >= per) continue;
     cells.set(key, n + 1);
-    out.push({ ...p, kind: frenchKind(p.kind) });
+    out.push({ ...renamed(p, p.osm), kind: frenchKind(p.kind) });
     if (out.length >= limit) break;
   }
   return out;

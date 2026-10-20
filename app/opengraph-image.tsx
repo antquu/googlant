@@ -5,7 +5,7 @@
 
 import { ImageResponse } from "next/og";
 
-// aperçu quand on partage un lien Googlant (iMessage, Discord, X, WhatsApp…)
+// aperçu quand on partage un lien Googlant (iMessage, Discord, X, WhatsApp...)
 export const alt = "Googlant — le web, indexé simplement";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

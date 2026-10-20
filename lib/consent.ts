@@ -4,8 +4,8 @@
  */
 
 // choix de l'utilisateur pour les cookies :
-// - « essential » : seulement ce qui est indispensable (préférences choisies, ce choix lui-même)
-// - « all » : en plus, on retient la position (ville / GPS) pour les résultats locaux
+// - "essential" : seulement ce qui est indispensable (préférences choisies, ce choix lui-même)
+// - "all" : en plus, on retient la position (ville / GPS) pour les résultats locaux
 export const CONSENT_COOKIE = "googlant_consent";
 export type Consent = "all" | "essential";
 

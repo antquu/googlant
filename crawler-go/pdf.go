@@ -64,7 +64,7 @@ func pdfString(s []byte) string {
 	return latin1(s)
 }
 
-// lit une chaîne littérale « (…) » équilibrée ; renvoie ses octets décodés et la position après « ) »
+// lit une chaîne littérale "(...)" équilibrée ; renvoie ses octets décodés et la position après ")"
 func readLiteral(src []byte, start int) ([]byte, int) {
 	depth := 0
 	i := start

@@ -10,7 +10,7 @@ import { sized } from "@/lib/img";
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "onError"> & {
   src: string;
-  /** largeur affichée en pixels CSS (la miniature est demandée en ×2 pour les écrans retina) */
+  /** largeur affichée en pixels CSS (la miniature est demandée en x2 pour les écrans retina) */
   width: number;
   onFail?: () => void;
 };

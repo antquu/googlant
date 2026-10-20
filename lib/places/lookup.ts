@@ -9,6 +9,9 @@ import { fold } from "../search/tokenizer";
 import type { Business } from "./business";
 import { detectLocal } from "./intent";
 import { categoryOf } from "./labels";
+import { renamed } from "./overrides";
+import { index } from "../index-api";
+import type { PoiHit } from "./poi-index";
 
 const UA = "GooglantBot/1.0 (moteur de recherche open source)";
 const POI = new Set(["amenity", "shop", "tourism", "leisure", "healthcare", "craft", "office", "club"]);
@@ -96,11 +99,12 @@ function toBusiness(r: NominatimResult): Business {
   const t = { ...(r.extratags ?? {}), [r.category]: r.type };
   const type = { N: "node", W: "way", R: "relation" }[r.osm_type.charAt(0).toUpperCase()] ?? r.osm_type.toLowerCase();
   const street = [a.house_number, a.road ?? a.pedestrian].filter(Boolean).join(" ");
+  const shown = renamed({ name: r.name ?? "", city }, `${type}/${r.osm_id}`);
   return {
     id: `${type}/${r.osm_id}`,
-    name: r.name ?? "",
+    name: shown.name,
     category: categoryOf(t),
-    city: city || undefined,
+    city: shown.city || undefined,
     lat: Number(r.lat),
     lon: Number(r.lon),
     address: [street, [a.postcode, city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || undefined,
@@ -238,6 +242,35 @@ async function googleLookup(key: string, query: string, near: { lat: number; lon
   };
 }
 
+// notre index des commerces OpenStreetMap : réponse en quelques millisecondes, sans service extérieur
+function poiToBusiness(p: PoiHit): Business {
+  const photo = p.image?.startsWith("https://") ? p.image : p.image ? commonsUrl(p.image) : undefined;
+  return {
+    id: p.osm,
+    name: p.name,
+    category: p.kind,
+    city: p.city ?? undefined,
+    lat: p.lat,
+    lon: p.lon,
+    address: [p.street, p.city].filter(Boolean).join(", ") || undefined,
+    phone: p.phone ?? undefined,
+    website: p.website ?? undefined,
+    hours: p.hours ?? undefined,
+    photo,
+    wikidata: p.wikidata ?? undefined,
+    brand: p.brand ?? undefined,
+    url: `https://www.openstreetmap.org/${p.osm}`,
+    editUrl: `https://www.openstreetmap.org/edit?${p.osm.replace("/", "=")}`,
+    source: "osm",
+  };
+}
+
+async function indexLookup(query: string, near: { lat: number; lon: number } | null): Promise<Business | null> {
+  const hits = (await index("pois", query, near?.lat ?? null, near?.lon ?? null, 6)) ?? [];
+  const best = hits.find((h) => nameMatches(query, h.name, `${h.city ?? ""} ${h.street ?? ""}`));
+  return best ? poiToBusiness(best) : null;
+}
+
 export async function findBusiness(query: string, near: { lat: number; lon: number } | null): Promise<Business | null> {
   const key = `${fold(query)}|${near ? `${near.lat.toFixed(1)},${near.lon.toFixed(1)}` : "-"}`;
   const hit = store.get(key);
@@ -245,7 +278,9 @@ export async function findBusiness(query: string, near: { lat: number; lon: numb
   let value: Business | null = null;
   try {
     const gkey = process.env.GOOGLE_PLACES_API_KEY;
-    value = gkey ? await googleLookup(gkey, query, near) : ((await photonLookup(query, near).catch(() => null)) ?? (await nominatimLookup(query, near)));
+    value = gkey
+      ? await googleLookup(gkey, query, near)
+      : ((await indexLookup(query, near).catch(() => null)) ?? (await photonLookup(query, near).catch(() => null)) ?? (await nominatimLookup(query, near)));
   } catch (err) {
     console.error("[googlant] fiche établissement :", err);
     return null;

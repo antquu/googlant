@@ -7,6 +7,7 @@ import "server-only";
 import { distanceKm } from "../geo/cities";
 import type { PlaceCategory } from "./intent";
 import { categoryOf } from "./labels";
+import { renamed } from "./overrides";
 import type { Place, PlacesResponse } from "./types";
 
 const UA = "GooglantBot/1.0 (moteur de recherche open source)";
@@ -156,7 +157,7 @@ function toPlaces(elements: OsmElement[], center: { lat: number; lon: number }):
       if (lat === undefined || lon === undefined || !t.name) return null;
       return {
         id: `${e.type}/${e.id}`,
-        name: t.name,
+        name: renamed({ name: t.name }, `${e.type}/${e.id}`).name,
         category: categoryOf(t),
         lat,
         lon,

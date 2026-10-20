@@ -40,7 +40,7 @@ const { values: opts } = parseArgs({
     // garde-fous pour la box internet (moteur Go) : connexions ouvertes et nouvelles connexions/s
     "max-conns": { type: "string", default: "60" },
     "conn-rate": { type: "string", default: "15" },
-    // plage « nuit » (heure de Paris) où le crawler a le droit d'aller beaucoup plus vite, ex. 00:30-05:45
+    // plage "nuit" (heure de Paris) où le crawler a le droit d'aller beaucoup plus vite, ex. 00:30-05:45
     night: { type: "string" },
     "night-concurrency": { type: "string", default: "150" },
     "night-max-conns": { type: "string", default: "150" },
@@ -49,7 +49,7 @@ const { values: opts } = parseArgs({
 });
 
 const USER_AGENT = "GooglantBot/1.0 (+https://github.com/googlant/googlant; moteur de recherche open source)";
-// ─── plage horaire : la nuit, personne n'utilise la connexion, on accélère
+// --- plage horaire : la nuit, personne n'utilise la connexion, on accélère
 function parisMinutes(d = new Date()): number {
   const [h, m] = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d).split(":").map(Number);
   return h * 60 + m;
@@ -381,7 +381,7 @@ function katana(origin: string, limit: number): Promise<string[]> {
   });
 }
 
-// ─── programmation des visites
+// --- programmation des visites
 function baseInterval(depth: number) {
   return depth === 0 ? 6 * HOUR : depth === 1 ? DAY : 3 * DAY;
 }
@@ -590,7 +590,7 @@ function indexPdf(job: Job, status: number, finalUrl: string, pdf: PdfInfo | nul
   log(created ? c.green("pdf") : c.dim("pdf"), `${finalUrl} ${c.dim("— " + pdf.title.slice(0, 60))}`);
 }
 
-// ─── moteur Go (Colly) : il télécharge et analyse, Node garde la file et l'index
+// --- moteur Go (Colly) : il télécharge et analyse, Node garde la file et l'index
 interface GoResult {
   id: number;
   kind: "html" | "pdf" | "skip" | "http" | "robots" | "error";
@@ -656,7 +656,7 @@ async function runGo(bin: string) {
   let nextId = 1;
 
   // frein automatique, d'après des mini speedtests de la connexion (crawler/netcheck.ts) :
-  // si la latence explose ou si le débit s'effondre, la box sature → on divise par deux ;
+  // si la latence explose ou si le débit s'effondre, la box sature -> on divise par deux ;
   // sinon on remonte de +10 toutes les 20 s. La nuit, pas de frein : seuls les plafonds du moteur Go.
   let target = NIGHT ? CONCURRENCY : Math.min(CONCURRENCY, 40);
   let windowTotal = 0;
@@ -825,7 +825,7 @@ async function main() {
     }, 2000),
     setInterval(publishStats, 5000),
     setInterval(() => MAIN && q.trimEvents.run(), 60_000),
-    // chien de garde : plus aucune page traitée depuis 10 min alors que la file n'est pas vide → redémarrage (systemd/pm2 relancent)
+    // chien de garde : plus aucune page traitée depuis 10 min alors que la file n'est pas vide -> redémarrage (systemd/pm2 relancent)
     setInterval(() => {
       if (Date.now() - lastActivity > 10 * 60_000 && counters.queued > 0) {
         console.error("crawler bloqué depuis 10 minutes : redémarrage");

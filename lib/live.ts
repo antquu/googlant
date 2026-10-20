@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 
-// une seule connexion par onglet, partagée par le footer, la ligne « en direct » de l'accueil, etc.
+// une seule connexion par onglet, partagée par le footer, la ligne "en direct" de l'accueil, etc.
 // Si NEXT_PUBLIC_LIVE_URL est défini (site sur Vercel), le navigateur se branche directement sur
 // le serveur d'index : Vercel ne sert aucune de ces requêtes.
 

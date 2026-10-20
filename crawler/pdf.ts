@@ -44,7 +44,7 @@ function decodeLiteral(raw: string): string {
   return out;
 }
 
-/** Chaîne PDF (déjà sans parenthèses) : UTF-16BE si elle commence par le BOM, sinon PDFDocEncoding ≈ latin-1. */
+/** Chaîne PDF (déjà sans parenthèses) : UTF-16BE si elle commence par le BOM, sinon PDFDocEncoding ~ latin-1. */
 function pdfString(s: string): string {
   if (s.charCodeAt(0) === 0xfe && s.charCodeAt(1) === 0xff) {
     let out = "";
@@ -61,7 +61,7 @@ function hexString(h: string): string {
   return pdfString(s);
 }
 
-/** Lit une chaîne littérale « (…) » équilibrée à partir de la position de la parenthèse ouvrante. */
+/** Lit une chaîne littérale "(...)" équilibrée à partir de la position de la parenthèse ouvrante. */
 function readLiteral(src: string, start: number): { value: string; end: number } {
   let depth = 0;
   let i = start;
@@ -104,7 +104,7 @@ function textOps(content: string): string {
       parts.push("");
       i++;
     } else {
-      // gros espacement dans un TJ (ex. « -250 ») → espace entre mots
+      // gros espacement dans un TJ (ex. "-250") -> espace entre mots
       const m = content.slice(i, i + 8).match(/^-(\d{3,})/);
       if (m) {
         parts.push(" ");

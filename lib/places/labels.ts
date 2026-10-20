@@ -22,7 +22,7 @@ const CUISINE: Record<string, string> = {
   sandwich: "sandwichs", coffee_shop: "coffee shop", ramen: "ramen", greek: "grec", spanish: "espagnol", african: "africain", steak_house: "grill",
 };
 
-// types OpenStreetMap moins courants, pour ne jamais afficher « Townhall » ou « Place of worship »
+// types OpenStreetMap moins courants, pour ne jamais afficher "Townhall" ou "Place of worship"
 const MORE: Record<string, string> = {
   townhall: "Mairie", police: "Police", social_facility: "Établissement social", place_of_worship: "Lieu de culte", school: "École",
   kindergarten: "École maternelle", college: "Lycée", university: "Université", community_centre: "Salle municipale", theatre: "Théâtre",
@@ -50,7 +50,7 @@ const MORE: Record<string, string> = {
   shelter: "Abri", water_point: "Point d'eau", charging_station: "Borne de recharge", recycling: "Point de recyclage", toilets: "Toilettes", vending_machine: "Distributeur automatique", parking: "Parking", fuel: "Station-service",
 };
 
-/** Libellé déjà calculé (ex. « Place of worship » d'un ancien import) → français si on le connaît */
+/** Libellé déjà calculé (ex. "Place of worship" d'un ancien import) -> français si on le connaît */
 export function frenchKind(label: string): string {
   const key = label.toLowerCase().replace(/ /g, "_");
   return MORE[key] ?? KIND[key] ?? label;

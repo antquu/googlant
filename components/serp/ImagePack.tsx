@@ -17,7 +17,7 @@ export interface PackImage {
   host: string;
 }
 
-// quelques images au milieu des résultats « Tout », comme Google
+// quelques images au milieu des résultats "Tout", comme Google
 export function ImagePack({ images, moreHref, newTab }: { images: PackImage[]; moreHref: string; newTab: boolean }) {
   const [broken, setBroken] = useState<string[]>([]);
   const visible = images.filter((i) => !broken.includes(i.src)).slice(0, 6);

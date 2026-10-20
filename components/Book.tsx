@@ -36,7 +36,7 @@ export function Book({ items, active = 0, size = "md", interactive = true, still
   const [spinning, setSpinning] = useState(false);
   // alterne a / b : changer de nom d'animation la relance depuis le début, même au milieu d'un tour
   const [spinTurn, setSpinTurn] = useState(0);
-  // livre affiché : en mode « spin », il ne change qu'à mi-tour (dos tourné vers nous)
+  // livre affiché : en mode "spin", il ne change qu'à mi-tour (dos tourné vers nous)
   const [shown, setShown] = useState(active);
   const prev = useRef(active);
 

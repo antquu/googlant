@@ -87,7 +87,7 @@ async function runRemote<K extends keyof IndexOps>(op: K, args: Parameters<Index
     }
     return (await res.json()) as ReturnType<IndexOps[K]>;
   } catch (err) {
-    // signaux internes de Next.js (page dynamique, redirection…), reconnaissables à leur « digest » :
+    // signaux internes de Next.js (page dynamique, redirection...), reconnaissables à leur "digest" :
     // à laisser passer. Pas d'import de next/navigation ici, ce fichier tourne aussi hors de Next.js
     if (err && typeof err === "object" && "digest" in err) throw err;
     console.error("[googlant] API d'index injoignable :", err);

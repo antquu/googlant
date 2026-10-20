@@ -2,7 +2,8 @@
   "name": "googlant",
   "version": "1.0.0",
   "private": true,
-  "description": "Googlant — moteur de recherche maison : crawler permanent, index SQLite FTS5, classement BM25 + PageRank, front Next.js.",
+  "description": "Moteur de recherche maison : crawler permanent (Go + Node), index SQLite FTS5, classement BM25 + PageRank, site Next.js.",
+  "author": "antquu (https://github.com/antquu)",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "engines": {

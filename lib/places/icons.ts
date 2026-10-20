@@ -2,7 +2,7 @@
  * Googlant by antquu (github.com/antquu)
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Icône Lucide d'un type de lieu (« Boulangerie », « Pharmacie »…), pour les catégories,
+ * Icône Lucide d'un type de lieu ("Boulangerie", "Pharmacie"...), pour les catégories,
  * les suggestions et les pins de Googlant Maps.
  */
 
@@ -12,7 +12,7 @@ export type PlaceIcon =
   | "Trees" | "Store" | "MapPin" | "GraduationCap" | "Hospital" | "Car" | "Beer" | "Pizza" | "IceCreamCone" | "Sandwich"
   | "Smartphone" | "Bike" | "Wrench" | "Sofa" | "Gem" | "Glasses" | "PawPrint" | "Plane" | "Cake" | "Fish" | "Building2" | "Home";
 
-// mots du type de lieu (en minuscules, sans accents) → icône ; le premier qui correspond gagne
+// mots du type de lieu (en minuscules, sans accents) -> icône ; le premier qui correspond gagne
 const RULES: [RegExp, PlaceIcon][] = [
   [/pizz/, "Pizza"],
   [/boulang|pain/, "Croissant"],
@@ -69,7 +69,7 @@ export function placeIcon(kind: string | undefined | null): PlaceIcon {
   return "MapPin";
 }
 
-/** Suggestions dont le nom commence par ce qu'on a tapé d'abord (gare, musée…), puis les autres dans leur ordre */
+/** Suggestions dont le nom commence par ce qu'on a tapé d'abord (gare, musée...), puis les autres dans leur ordre */
 export function byTypedPrefix<T extends { label: string }>(list: T[], typed: string): T[] {
   const t = fold(typed.trim());
   const rank = (s: T) => (fold(s.label).startsWith(t) ? 0 : 1);

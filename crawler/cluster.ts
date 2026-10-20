@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Lance plusieurs crawlers en parallèle sur la même base, chacun sur sa part des sites.
- * Usage : tsx crawler/cluster.ts [--shards N] [options du crawler…]
+ * Usage : tsx crawler/cluster.ts [--shards N] [options du crawler...]
  * Sans --shards : 1 si le moteur Go est compilé (il utilise déjà tous les cœurs), sinon autant de
  * crawlers Node que la machine le permet (1 par cœur, ~600 Mo de RAM chacun).
  */

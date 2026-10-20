@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   alternates: { canonical: "/" },
   keywords: ["moteur de recherche", "Googlant", "recherche web", "cartes", "itinéraire", "Grenoble", "sans pistage"],
-  // jeton de la Google Search Console (balise meta « google-site-verification »)
+  // jeton de la Google Search Console (balise meta "google-site-verification")
   verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
   title: { default: "Googlant", template: "%s — Googlant" },
   description: "Googlant, le moteur de recherche indépendant : son propre crawler, son propre index, sans compte et sans pistage.",

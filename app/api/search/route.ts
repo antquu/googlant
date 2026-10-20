@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   });
   if (!res) return NextResponse.json({ error: "Index injoignable" }, { status: 503 });
 
-  // « Charger plus » sur la page de résultats : les résultats tels quels, pour les ajouter à la suite
+  // "Charger plus" sur la page de résultats : les résultats tels quels, pour les ajouter à la suite
   if (params.get("raw") === "1") return NextResponse.json({ hits: res.hits, total: res.total, page: res.page, perPage: res.perPage });
 
   return NextResponse.json({
