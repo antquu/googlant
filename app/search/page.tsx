@@ -28,6 +28,8 @@ import { ImagePack } from "@/components/serp/ImagePack";
 import { LeaveCard } from "@/components/serp/LeaveCard";
 import { LoadMore } from "@/components/serp/LoadMore";
 import { WhyPanel } from "@/components/serp/WhyPanel";
+import { AiOverview } from "@/components/serp/AiOverview";
+import { wantsOverview } from "@/lib/ai/overview";
 import { rivalFor } from "@/lib/search/rivals";
 import { Pager } from "@/components/serp/Pager";
 import { ResultItem } from "@/components/serp/ResultItem";
@@ -110,6 +112,9 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   const ads = wantPack ? selectAds(q, loc) : [];
   // "google", "bing"... : on propose d'y aller directement (sous les annonces, au-dessus des résultats)
   const rival = tab === "all" && page === 1 ? rivalFor(q) : null;
+
+  // aperçu IA (Gemini) : seulement pour les vraies recherches de la première page
+  const showAi = tab === "all" && page === 1 && !rival && !showBusiness && !showPack && !!res && wantsOverview(q, res.hits);
 
   const parsed = parseQuery(q);
   const top = res?.hits[0];
@@ -199,6 +204,8 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
               )}
 
               {rival && <LeaveCard key={q} rival={rival} />}
+
+              {showAi && <AiOverview key={`ai-${q}`} q={q} />}
 
               {showPack && <LocalPack query={q} title={packTitle} center={center} loc={loc}moreHref={`/maps?q=${encodeURIComponent(q)}`} />}
 

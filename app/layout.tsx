@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   title: { default: "Googlant", template: "%s — Googlant" },
   description: "Googlant, le moteur de recherche indépendant : son propre crawler, son propre index, sans compte et sans pistage.",
   applicationName: "Googlant",
+  appleWebApp: { capable: true, title: "Googlant", statusBarStyle: "black" },
   openGraph: { title: "Googlant", description: "Le web, indexé simplement. Sans compte, sans pistage.", type: "website", locale: "fr_FR", siteName: "Googlant", url: "/" },
   twitter: { card: "summary_large_image", title: "Googlant", description: "Le web, indexé simplement. Sans compte, sans pistage." },
   robots: { index: true, follow: true },

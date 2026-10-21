@@ -5,14 +5,13 @@
 
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { hostOf, normalizeUrl } from "../../crawler/url";
+import { hostOf, isPrivateHost, normalizeUrl } from "../../crawler/url";
 import { tx } from "./db";
 
 export type SubmitResult =
   | { ok: true; url: string; host: string; status: "queued" | "refresh"; ahead: number }
   | { ok: false; error: string };
 
-const PRIVATE_HOST = /^(localhost|.*\.local|.*\.internal|.*\.lan|.*\.home)$|^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|^\[?(::1|fc|fd|fe80)/i;
 
 export function ensureSubmissions(db: DatabaseSync) {
   db.exec(`
@@ -32,7 +31,7 @@ export function submitUrl(db: DatabaseSync, raw: string, clientId: string): Subm
   const url = normalizeUrl(/^https?:\/\//i.test(input) ? input : `https://${input}`);
   if (!url) return { ok: false, error: "Cette adresse n'est pas valide." };
   const host = hostOf(url);
-  if (!host.includes(".") || PRIVATE_HOST.test(host)) return { ok: false, error: "Seuls les sites publics peuvent être proposés." };
+  if (isPrivateHost(host)) return { ok: false, error: "Seuls les sites publics peuvent être proposés." };
 
   ensureSubmissions(db);
   const now = Math.floor(Date.now() / 1000);

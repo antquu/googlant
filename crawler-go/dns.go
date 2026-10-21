@@ -10,6 +10,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand/v2"
 	"net"
 	"os"
@@ -114,6 +115,9 @@ func (c *dnsCache) resolve(ctx context.Context, host string) ([]net.IP, error) {
 	return nil, lastErr
 }
 
+// 100.64.0.0/10 : adresses Tailscale et CGNAT des opérateurs
+var cgnat = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+
 // DialContext pour le transport HTTP : IPv4 seulement, adresse tirée du cache
 func (c *dnsCache) dial(dialer *net.Dialer) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, _ string, addr string) (net.Conn, error) {
@@ -125,6 +129,17 @@ func (c *dnsCache) dial(dialer *net.Dialer) func(ctx context.Context, network, a
 		if err != nil {
 			return nil, err
 		}
+		// un site public qui redirige vers localhost ou la box : refusé (seulement des adresses publiques)
+		public := ips[:0:0]
+		for _, ip := range ips {
+			if !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified() && !cgnat.Contains(ip) {
+				public = append(public, ip)
+			}
+		}
+		if len(public) == 0 {
+			return nil, fmt.Errorf("adresse privée refusée : %s", host)
+		}
+		ips = public
 		var lastErr error
 		for _, ip := range ips[:min(len(ips), 2)] {
 			conn, err := dialer.DialContext(ctx, "tcp4", net.JoinHostPort(ip.String(), port))

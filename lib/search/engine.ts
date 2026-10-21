@@ -137,11 +137,24 @@ export function rowToDoc(r: PageRow): IndexedDoc {
   };
 }
 
+// index "pages_meta" : toutes les colonnes d'affichage sans le texte des pages. Bien plus petit que la
+// table, il reste en mémoire : un résultat se charge sans aller lire le disque (lent sur la VM)
+const metaIndex = new WeakMap<DatabaseSync, boolean>();
+function hasMetaIndex(db: DatabaseSync): boolean {
+  let ok = metaIndex.get(db);
+  if (ok === undefined) {
+    ok = !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'pages_meta'").get();
+    metaIndex.set(db, ok);
+  }
+  return ok;
+}
+
 export function loadDocs(db: DatabaseSync, ids: number[], withText = false): Map<number, IndexedDoc> {
   const out = new Map<number, IndexedDoc>();
+  const from = !withText && hasMetaIndex(db) ? "pages INDEXED BY pages_meta" : "pages";
   for (let i = 0; i < ids.length; i += 500) {
     const chunk = ids.slice(i, i + 500);
-    const rows = db.prepare(`SELECT ${COLS}${withText ? ", text" : ""} FROM pages WHERE id IN (${chunk.map(() => "?").join(",")})`).all(...chunk) as unknown as PageRow[];
+    const rows = db.prepare(`SELECT ${COLS}${withText ? ", text" : ""} FROM ${from} WHERE id IN (${chunk.map(() => "?").join(",")})`).all(...chunk) as unknown as PageRow[];
     for (const r of rows) out.set(r.id, rowToDoc(r));
   }
   return out;

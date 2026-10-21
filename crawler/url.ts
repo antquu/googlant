@@ -7,6 +7,16 @@ const TRACKING = /^(utm_\w+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|ref_
 
 const BINARY = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|zip|gz|tgz|rar|7z|tar|exe|msi|dmg|apk|iso|mp3|mp4|m4a|wav|ogg|webm|mov|avi|mkv|woff2?|ttf|otf|eot|css|js|mjs|json|xml|rss|atom|csv|xlsx?|docx?|pptx?)$/i;
 
+// machines locales (localhost, box, réseau de la maison, Tailscale) : jamais crawlées ni indexées
+const LOCAL_NAME = /^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.lan|.*\.home|.*\.ts\.net)$/i;
+const PRIVATE_IP = /^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/;
+
+export function isPrivateHost(host: string): boolean {
+  if (host.startsWith("[")) return true; // IPv6 : le crawler n'utilise que l'IPv4
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return PRIVATE_IP.test(host);
+  return LOCAL_NAME.test(host) || !host.includes(".");
+}
+
 export function normalizeUrl(input: string, base?: string): string | null {
   let u: URL;
   try {
@@ -17,6 +27,7 @@ export function normalizeUrl(input: string, base?: string): string | null {
   if (u.protocol !== "http:" && u.protocol !== "https:") return null;
   if (u.username || u.password) return null;
   if (BINARY.test(u.pathname)) return null;
+  if (isPrivateHost(u.hostname)) return null;
 
   u.hash = "";
   u.hostname = u.hostname.toLowerCase().replace(/\.$/, "");

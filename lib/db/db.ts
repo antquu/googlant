@@ -37,6 +37,8 @@ CREATE INDEX IF NOT EXISTS pages_crawled ON pages(crawled_at);
 CREATE INDEX IF NOT EXISTS pages_quality ON pages(quality);
 CREATE INDEX IF NOT EXISTS pages_title   ON pages(title_fold);
 CREATE INDEX IF NOT EXISTS pages_hash    ON pages(content_hash);
+-- colonnes d'affichage sans le texte : les résultats se chargent depuis cet index compact, gardé en mémoire
+CREATE INDEX IF NOT EXISTS pages_meta    ON pages(id, url, host, site_name, title, description, headings, lang, favicon, image, published_at, crawled_at, rank, inlinks, directory);
 CREATE INDEX IF NOT EXISTS pages_pub     ON pages(published_at) WHERE published_at IS NOT NULL;
 
 CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(

@@ -14,6 +14,7 @@ Je voulais comprendre comment marche un moteur de recherche "en vrai", pas juste
 - Index maison avec correction des fautes (pyhton devient python) et suggestions pendant la frappe.
 - Les opérateurs de Google : `"phrase exacte"`, `-mot`, `site:` / `-site:`, `filetype:pdf`, `intitle:`, `inurl:`, `lang:en`, `after:2025-01`, `before:2024`. Le menu "Outils" les remplit pour toi.
 - Onglets Tout, Images, Maps, Actualités. Un bandeau d'images au milieu des résultats, les PDF marqués comme tels, et un bouton "Charger plus" au lieu des pages.
+- Un "Aperçu IA" en haut des résultats, comme sur Google : Gemini résume les meilleures pages de l'index en citant ses sources. Facultatif (clé gratuite `GEMINI_API_KEY`), et gardé en cache pour ne pas exploser le quota.
 - Si tu cherches "google" ou "bing", Googlant te propose simplement d'y aller.
 
 **Googlant Maps** (`/maps`)
@@ -26,7 +27,7 @@ Je voulais comprendre comment marche un moteur de recherche "en vrai", pas juste
 - Chiffres en direct en bas de page (pages, sites, pages/minute), sans recharger.
 - Pas de compte, pas de pistage. Un bandeau cookies, et si on refuse, la position n'est jamais gardée.
 - Résultats sponsorisés pour GreLines, choisis selon la recherche et la ville, sans profilage, toujours marqués "Sponsorisé".
-- Aperçu soigné quand on partage un lien (iMessage, Discord, X…).
+- Aperçu soigné quand on partage un lien (iMessage, Discord, X…), et installable sur le téléphone comme une appli (icône G).
 
 Côté design, je me suis beaucoup inspiré de [Grokipedia](https://grokipedia.com) : fond quasi noir, titres en serif (Newsreader), livres en 3D qui flottent et font un tour sur eux-mêmes, étagère dont les livres sortent quand on passe dessus.
 
@@ -143,6 +144,7 @@ Puis mettre un jeton secret dans `GOOGLANT_INDEX_TOKEN`, dans le `.env.local` du
 | `NEXT_PUBLIC_LIVE_URL` | la même adresse Funnel (chiffres en direct) |
 | `NEXT_PUBLIC_MAP_STYLE_URL` | facultatif : style de carte MapTiler |
 | `GOOGLE_SITE_VERIFICATION` | facultatif : jeton de la Google Search Console |
+| `GEMINI_API_KEY` | facultatif : clé Google AI Studio pour l'aperçu IA |
 
 3. Déployer. Le site est servi depuis Paris (`vercel.json`), au plus près du serveur d'index. Les chiffres en direct ne passent pas par Vercel, ça économise la bande passante gratuite.
 
