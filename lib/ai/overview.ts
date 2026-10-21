@@ -27,8 +27,9 @@ const KEYS = () =>
     .filter((k) => /^GEMINI_API_KEY\d*$/i.test(k) && process.env[k])
     .sort((a, b) => (Number(a.replace(/\D/g, "")) || 1) - (Number(b.replace(/\D/g, "")) || 1))
     .map((k) => process.env[k]!.trim());
-// le premier modèle qui répond est retenu ; GEMINI_MODEL pour en imposer un
-const MODELS = (process.env.GEMINI_MODEL || "gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash").split(",").map((m) => m.trim()).filter(Boolean);
+// le premier modèle qui répond est retenu ; GEMINI_MODEL pour en imposer un. Les "lite" d'abord :
+// bien plus rapides, et un quota gratuit plus large
+const MODELS = (process.env.GEMINI_MODEL || "gemini-flash-lite-latest,gemini-2.5-flash-lite,gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash").split(",").map((m) => m.trim()).filter(Boolean);
 
 export const aiEnabled = () => KEYS().length > 0;
 
@@ -97,8 +98,10 @@ function remember(q: string, text: string) {
   cache.set(q.toLowerCase(), { at: Date.now(), text });
 }
 
-// clé à court de quota : mise de côté une minute ; modèle inconnu : oublié ; réglage de "réflexion" accepté par modèle
+// clé refusée : mise de côté ; quota épuisé : seulement pour ce modèle (les autres ont leur propre quota) ;
+// modèle inconnu : oublié ; réglage de "réflexion" accepté par modèle
 const resting = new Map<string, number>();
+const rests = (k: string) => (resting.get(k) ?? 0) > Date.now();
 const deadModels = new Set<string>();
 const thinkingFor = new Map<string, number>();
 // sans "réflexion" la réponse commence bien plus vite ; les modèles récents prennent thinkingLevel, les 2.x thinkingBudget
@@ -119,12 +122,12 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
 async function open(body: Record<string, unknown>, started: number): Promise<{ reader: Reader; ctrl: AbortController } | null> {
   const keys = KEYS();
   const start = turn++ % Math.max(keys.length, 1);
-  const order = [...keys.slice(start), ...keys.slice(0, start)].filter((k) => (resting.get(k) ?? 0) < Date.now());
+  const order = [...keys.slice(start), ...keys.slice(0, start)].filter((k) => !rests(k));
   for (const model of MODELS.filter((m) => !deadModels.has(m))) {
     for (const key of order) {
       for (let t = thinkingFor.get(model) ?? 0; t < THINKING.length; t++) {
         if (Date.now() - started > BUDGET_MS) return null;
-        if ((resting.get(key) ?? 0) > Date.now()) break;
+        if (rests(key) || rests(`${model}|${key}`)) break;
         const ctrl = new AbortController();
         const gen = body.generationConfig as Record<string, unknown>;
         const payload = { ...body, generationConfig: THINKING[t] ? { ...gen, thinkingConfig: THINKING[t] } : gen };
@@ -157,9 +160,8 @@ async function open(body: Record<string, unknown>, started: number): Promise<{ r
           deadModels.add(model);
           break;
         }
-        if (res.status === 429 || res.status === 403 || res.status === 401) {
-          resting.set(key, Date.now() + (res.status === 429 ? 60_000 : 3_600_000));
-        }
+        if (res.status === 429) resting.set(`${model}|${key}`, Date.now() + (/PerDay/i.test(why) ? 3_600_000 : 60_000));
+        if (res.status === 403 || res.status === 401) resting.set(key, Date.now() + 3_600_000);
         break;
       }
       if (deadModels.has(model)) break;
@@ -216,4 +218,20 @@ export async function* overview(q: string, hits: SearchHit[], started = Date.now
   if (/^\s*AUCUNE/i.test(text) || !text.trim()) return;
   if (sent < text.length) yield text.slice(sent);
   remember(q, text);
+}
+
+/** Un morceau de l'aperçu et la promesse du suivant : passé tel quel de la page au composant client. */
+export type AiPart = { text: string; next: Promise<AiPart | null> } | null;
+
+function link(parts: AsyncGenerator<string>): Promise<AiPart> {
+  return parts.next().then(
+    (r) => (r.done ? null : { text: r.value, next: link(parts) }),
+    () => null,
+  );
+}
+
+/** L'aperçu au fil de l'eau, lancé dès que la page a ses résultats : pas de deuxième recherche dans l'index. */
+export function streamOverview(q: string, hits: SearchHit[]): Promise<AiPart> {
+  const done = cached(q);
+  return done ? Promise.resolve({ text: done, next: Promise.resolve(null) }) : link(overview(q, hits));
 }

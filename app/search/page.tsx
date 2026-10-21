@@ -33,7 +33,7 @@ import { AiOverview } from "@/components/serp/AiOverview";
 import { AnswerBox } from "@/components/serp/AnswerBox";
 import { findAnswer } from "@/lib/search/answer";
 import { officialFor, withOfficial } from "@/lib/search/official";
-import { wantsOverview } from "@/lib/ai/overview";
+import { streamOverview, toSources, wantsOverview } from "@/lib/ai/overview";
 import { rivalFor } from "@/lib/search/rivals";
 import { Pager } from "@/components/serp/Pager";
 import { ResultItem } from "@/components/serp/ResultItem";
@@ -129,7 +129,10 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
   const rival = tab === "all" && page === 1 ? rivalFor(q) : null;
 
   // aperçu IA (Gemini) : seulement pour les vraies recherches de la première page
-  const showAi = tab === "all" && page === 1 && !rival && !showBusiness && !showPack && !!res && wantsOverview(q, res.hits);
+  // lancé tout de suite avec les résultats déjà en main : le texte arrive dans la page au fil de l'eau
+  const ai = tab === "all" && page === 1 && !rival && !showBusiness && !showPack && res && wantsOverview(q, res.hits)
+    ? { sources: toSources(res.hits), first: streamOverview(q, res.hits) }
+    : null;
 
   // question ("pourquoi mon enfant ne dort pas") : passage de la meilleure page en tête, comme l'extrait optimisé de Google
   const answer = tab === "all" && page === 1 && !rival && !showBusiness && res && !webAll ? findAnswer(q, res.hits) : null;
@@ -223,7 +226,7 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
 
               {rival && <LeaveCard key={q} rival={rival} />}
 
-              {showAi && <AiOverview key={`ai-${q}`} q={q} />}
+              {ai && <AiOverview key={`ai-${q}`} q={q} {...ai} />}
 
               {answer && <AnswerBox answer={answer} newTab={prefs.newTab} />}
 
