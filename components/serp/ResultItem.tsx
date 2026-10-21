@@ -37,7 +37,6 @@ export function ResultItem({ hit, index, query, newTab, position }: { hit: Searc
           <span className="result-site-text">
             <span className="result-site-name">
               {doc.siteName}
-              {hit.official && <span className="result-official">Site officiel</span>}
             </span>
             <span className="result-url">{breadcrumb(doc.url)}</span>
           </span>

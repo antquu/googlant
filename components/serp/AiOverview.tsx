@@ -5,13 +5,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Aperçu IA en haut des résultats, comme sur Google : la réponse s'écrit au fil de l'eau,
- * repliée au début ("Afficher plus"), avec les pages citées en petites pastilles et en cartes.
+ * repliée au début ("Afficher plus"), avec les pages citées en petites pastilles et en cartes,
+ * puis l'encadré "Autres questions". Le texte arrive avec la page (promesse par morceau).
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, ChevronRight, Copy, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import type { AiSource } from "@/lib/ai/overview";
+import type { AiPart, AiSource } from "@/lib/ai/overview";
 import { Favicon } from "../Favicon";
 
 // étapes affichées pendant que la réponse se prépare
@@ -102,10 +103,43 @@ function render(text: string, sources: AiSource[]): ReactNode[] {
   return blocks;
 }
 
-export function AiOverview({ q }: { q: string }) {
+// fin de la réponse : "QUESTIONS:" puis "? question | réponse [n]" pour l'encadré "Autres questions"
+function split(full: string): { main: string; questions: { q: string; a: string }[] } {
+  const at = full.search(/\n\s*QUESTIONS\s*:/i);
+  // pendant l'écriture, on cache aussi un "QUEST" pas encore terminé
+  const main = (at < 0 ? full : full.slice(0, at)).replace(/\n\s*Q[A-Z]{0,8}\s*:?\s*$/i, "");
+  const questions = (at < 0 ? "" : full.slice(at))
+    .split("\n")
+    .map((l) => l.trim().match(/^\?\s*(.+?)\s*\|\s*(.+)$/))
+    .filter((m): m is RegExpMatchArray => !!m)
+    .map((m) => ({ q: m[1], a: m[2] }))
+    .slice(0, 4);
+  return { main, questions };
+}
+
+function Questions({ items, sources }: { items: { q: string; a: string }[]; sources: AiSource[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <section className="paa" aria-label="Autres questions">
+      <h2>Autres questions</h2>
+      {items.map((it, i) => (
+        <div key={i} className="paa-item" data-open={open === i ? "1" : undefined}>
+          <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>
+            <span>{it.q}</span>
+            <i>
+              <ChevronDown size={18} />
+            </i>
+          </button>
+          {open === i && <p>{inline(it.a, sources, `paa${i}`)}</p>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function AiOverview({ q, sources, first }: { q: string; sources: AiSource[]; first: Promise<AiPart> }) {
   const [state, setState] = useState<"loading" | "streaming" | "done" | "none">("loading");
   const [text, setText] = useState("");
-  const [sources, setSources] = useState<AiSource[]>([]);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
@@ -115,35 +149,31 @@ export function AiOverview({ q }: { q: string }) {
   const rail = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctrl = new AbortController();
+    let alive = true;
+    // rien reçu à temps : on retire l'encart plutôt que de rester sur "Raisonnement…"
+    const late = setTimeout(() => {
+      alive = false;
+      setState((s) => (s === "loading" ? "none" : s));
+    }, 35_000);
     (async () => {
-      const res = await fetch(`/api/overview?q=${encodeURIComponent(q)}`, { signal: ctrl.signal }).catch(() => null);
-      if (!res?.ok || res.status === 204 || !res.body) return setState("none");
-      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let part = await first.catch(() => null);
+      if (!alive) return;
+      clearTimeout(late);
+      if (!part) return setState("none");
+      setState("streaming");
       let buf = "";
-      let head = true;
-      for (;;) {
-        const { value, done } = await reader.read().catch(() => ({ value: undefined, done: true }));
-        if (done) break;
-        buf += value;
-        if (head) {
-          const nl = buf.indexOf("\n");
-          if (nl < 0) continue;
-          try {
-            setSources((JSON.parse(buf.slice(0, nl)) as { sources: AiSource[] }).sources);
-          } catch {
-            return setState("none");
-          }
-          buf = buf.slice(nl + 1);
-          head = false;
-          setState("streaming");
-        }
+      while (part && alive) {
+        buf += part.text;
         setText(buf);
+        part = await part.next.catch(() => null);
       }
-      setState(buf.trim() ? "done" : "none");
+      if (alive) setState(split(buf).main.trim() ? "done" : "none");
     })();
-    return () => ctrl.abort();
-  }, [q]);
+    return () => {
+      alive = false;
+      clearTimeout(late);
+    };
+  }, [first]);
 
   useEffect(() => {
     if (state !== "loading") return;
@@ -157,9 +187,10 @@ export function AiOverview({ q }: { q: string }) {
   }, [text]);
 
   if (state === "none") return null;
+  const { main, questions } = split(text);
 
   const copy = async () => {
-    const plain = text.replace(/\s*\[\d+(?:\s*,\s*\d+)*\]/g, "").replace(/\*\*/g, "").replace(/^#+\s*/gm, "");
+    const plain = main.replace(/\s*\[\d+(?:\s*,\s*\d+)*\]/g, "").replace(/\*\*/g, "").replace(/^#+\s*/gm, "");
     await navigator.clipboard?.writeText(plain).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
@@ -169,88 +200,91 @@ export function AiOverview({ q }: { q: string }) {
     if (navigator.share) navigator.share({ title: `${q} — Googlant`, url }).catch(() => {});
     else navigator.clipboard?.writeText(url).catch(() => {});
   };
-  const used = sources.filter((s) => new RegExp(`\\[(?:\\d+\\s*,\\s*)*${s.n}(?:\\s*,\\s*\\d+)*\\]`).test(text));
+  const used = sources.filter((s) => new RegExp(`\\[(?:\\d+\\s*,\\s*)*${s.n}(?:\\s*,\\s*\\d+)*\\]`).test(main));
   const cards = used.length ? used : sources;
 
   return (
-    <section className="ai" data-state={state} data-open={open || !tall ? "1" : undefined} aria-label="Aperçu IA" aria-busy={state !== "done"}>
-      <header className="ai-head">
-        <Spark />
-        <span>Aperçu IA</span>
-        {state === "loading" && (
-          <span className="ai-status" key={step}>
-            {STEPS[step]}
-          </span>
-        )}
-      </header>
-
-      {state === "loading" ? (
-        <div className="ai-skeleton" aria-hidden>
-          <i />
-          <i />
-          <i />
-        </div>
-      ) : (
-        <div className="ai-body" ref={body}>
-          {render(text, sources)}
-          {state === "streaming" && <span className="ai-caret" aria-hidden />}
-        </div>
-      )}
-
-      {state !== "loading" && tall && !open && (
-        <button type="button" className="ai-more" onClick={() => setOpen(true)}>
-          Afficher plus <ChevronDown size={16} />
-        </button>
-      )}
-
-      {(open || !tall) && state === "done" && (
-        <div className="ai-foot">
-          {cards.length > 0 && (
-            <div className="ai-rail-wrap">
-              <div className="ai-rail" ref={rail}>
-                {cards.map((s) => (
-                  <a key={s.n} className="ai-card" href={s.url} target="_blank" rel="noopener">
-                    <span className="ai-card-site">
-                      <Favicon src={s.favicon} host={s.host} small />
-                      <span>{s.siteName || s.host}</span>
-                    </span>
-                    <span className="ai-card-main">
-                      <span className="ai-card-text">
-                        <b>{s.title}</b>
-                        <small>
-                          {s.date && <>{formatDate(s.date)} — </>}
-                          {s.snippet}
-                        </small>
-                      </span>
-                      {s.image && <img src={s.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => e.currentTarget.remove()} />}
-                    </span>
-                  </a>
-                ))}
-              </div>
-              {cards.length > 2 && (
-                <button type="button" className="ai-rail-next" aria-label="Sources suivantes" onClick={() => rail.current?.scrollBy({ left: 300, behavior: "smooth" })}>
-                  <ChevronRight size={18} />
-                </button>
-              )}
-            </div>
+    <>
+      <section className="ai" data-state={state} data-open={open || !tall ? "1" : undefined} aria-label="Aperçu IA" aria-busy={state !== "done"}>
+        <header className="ai-head">
+          <Spark />
+          <span>Aperçu IA</span>
+          {state === "loading" && (
+            <span className="ai-status" key={step}>
+              {STEPS[step]}
+            </span>
           )}
-          <p className="ai-note">Les réponses de l&apos;IA peuvent contenir des erreurs. Vérifiez les informations importantes dans les sources.</p>
-          <div className="ai-actions">
-            <button type="button" onClick={copy} aria-label="Copier la réponse" title="Copier">
-              {copied ? <Check size={17} /> : <Copy size={17} />}
-            </button>
-            <button type="button" onClick={share} aria-label="Partager" title="Partager">
-              <Share2 size={17} />
-            </button>
-            <button type="button" onClick={() => setVote(vote === "up" ? null : "up")} aria-pressed={vote === "up"} aria-label="Réponse utile" title="Utile">
-              <ThumbsUp size={17} />
-            </button>
-            <button type="button" onClick={() => setVote(vote === "down" ? null : "down")} aria-pressed={vote === "down"} aria-label="Réponse pas utile" title="Pas utile">
-              <ThumbsDown size={17} />
-            </button>
+        </header>
+
+        {state === "loading" ? (
+          <div className="ai-skeleton" aria-hidden>
+            <i />
+            <i />
+            <i />
           </div>
-        </div>
-      )}
-    </section>
+        ) : (
+          <div className="ai-body" ref={body}>
+            {render(main, sources)}
+            {state === "streaming" && <span className="ai-caret" aria-hidden />}
+          </div>
+        )}
+
+        {state !== "loading" && tall && !open && (
+          <button type="button" className="ai-more" onClick={() => setOpen(true)}>
+            Afficher plus <ChevronDown size={16} />
+          </button>
+        )}
+
+        {(open || !tall) && state === "done" && (
+          <div className="ai-foot">
+            {cards.length > 0 && (
+              <div className="ai-rail-wrap">
+                <div className="ai-rail" ref={rail}>
+                  {cards.map((s) => (
+                    <a key={s.n} className="ai-card" href={s.url} target="_blank" rel="noopener">
+                      <span className="ai-card-site">
+                        <Favicon src={s.favicon} host={s.host} small />
+                        <span>{s.siteName || s.host}</span>
+                      </span>
+                      <span className="ai-card-main">
+                        <span className="ai-card-text">
+                          <b>{s.title}</b>
+                          <small>
+                            {s.date && <>{formatDate(s.date)} — </>}
+                            {s.snippet}
+                          </small>
+                        </span>
+                        {s.image && <img src={s.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => e.currentTarget.remove()} />}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                {cards.length > 2 && (
+                  <button type="button" className="ai-rail-next" aria-label="Sources suivantes" onClick={() => rail.current?.scrollBy({ left: 300, behavior: "smooth" })}>
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="ai-note">Les réponses de l&apos;IA peuvent contenir des erreurs. Vérifiez les informations importantes dans les sources.</p>
+            <div className="ai-actions">
+              <button type="button" onClick={copy} aria-label="Copier la réponse" title="Copier">
+                {copied ? <Check size={17} /> : <Copy size={17} />}
+              </button>
+              <button type="button" onClick={share} aria-label="Partager" title="Partager">
+                <Share2 size={17} />
+              </button>
+              <button type="button" onClick={() => setVote(vote === "up" ? null : "up")} aria-pressed={vote === "up"} aria-label="Réponse utile" title="Utile">
+                <ThumbsUp size={17} />
+              </button>
+              <button type="button" onClick={() => setVote(vote === "down" ? null : "down")} aria-pressed={vote === "down"} aria-label="Réponse pas utile" title="Pas utile">
+                <ThumbsDown size={17} />
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+      {state === "done" && questions.length > 0 && <Questions items={questions} sources={sources} />}
+    </>
   );
 }
