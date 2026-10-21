@@ -27,7 +27,6 @@ import { KnowledgePanel, SideAd } from "@/components/serp/Aside";
 import { ImageGrid } from "@/components/serp/ImageGrid";
 import { ImagePack } from "@/components/serp/ImagePack";
 import { LeaveCard } from "@/components/serp/LeaveCard";
-import { LoadMore } from "@/components/serp/LoadMore";
 import { WhyPanel } from "@/components/serp/WhyPanel";
 import { AiOverview } from "@/components/serp/AiOverview";
 import { AnswerBox } from "@/components/serp/AnswerBox";
@@ -241,11 +240,8 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
 
               {!hits.length && !showPack && <NoResults q={q} />}
 
-              {/* résultats de Googlant : « Charger plus » ; résultats web (Brave) : pages classiques */}
-              {tab === "all" && !webAll && hits.length > 0 && (
-                <LoadMore key={q} q={q} startPage={page} pages={pages} perPage={prefs.perPage} newTab={prefs.newTab} shown={hits.map((h) => h.doc.url)} />
-              )}
-              {tab === "all" && webAll && <Pager page={page} pages={pages} href={pageHref} />}
+              {/* pages "Gooooooglant" en bas ; « Charger plus » reste pour les images */}
+              {tab === "all" && hits.length > 0 && <Pager page={page} pages={pages} href={pageHref} />}
 
               {res.related.length > 0 && page === 1 && tab === "all" && (
                 <section className="related">
