@@ -5,7 +5,8 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense } from "react";
+import Loading from "./loading";
 import { redirect } from "next/navigation";
 import { campaignsByProximity, selectAds } from "@/lib/ads/select";
 import { getPrefs, getUserLocation } from "@/lib/context";
@@ -29,6 +30,9 @@ import { LeaveCard } from "@/components/serp/LeaveCard";
 import { LoadMore } from "@/components/serp/LoadMore";
 import { WhyPanel } from "@/components/serp/WhyPanel";
 import { AiOverview } from "@/components/serp/AiOverview";
+import { AnswerBox } from "@/components/serp/AnswerBox";
+import { findAnswer } from "@/lib/search/answer";
+import { officialFor, withOfficial } from "@/lib/search/official";
 import { wantsOverview } from "@/lib/ai/overview";
 import { rivalFor } from "@/lib/search/rivals";
 import { Pager } from "@/components/serp/Pager";
@@ -44,10 +48,19 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
   return { title: q ? `${q}` : "Recherche", robots: { index: false } };
 }
 
+// une nouvelle recherche affiche tout de suite le squelette, au lieu de laisser les anciens résultats figés
 export default async function SearchPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
+  if (!(sp.q ?? "").trim()) redirect("/");
+  return (
+    <Suspense key={`${sp.q}|${sp.tab ?? ""}|${sp.page ?? ""}|${sp.exact ?? ""}`} fallback={<Loading />}>
+      <Results sp={sp} />
+    </Suspense>
+  );
+}
+
+async function Results({ sp }: { sp: Awaited<SP> }) {
   const q = (sp.q ?? "").trim().slice(0, 256);
-  if (!q) redirect("/");
   if (sp.tab === "maps") redirect(`/maps?q=${encodeURIComponent(q)}`);
   const tab = sp.tab && TABS.includes(sp.tab) ? sp.tab : "all";
   const page = Math.max(1, Math.min(50, Number(sp.page) || 1));
@@ -108,6 +121,8 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
       return true;
     });
   }
+  // "ants", "caf", "impots" : le site officiel du service public en premier
+  if (tab === "all" && page === 1) hits = withOfficial(q, hits);
   const pages = webAll ? Math.min(10, webAll.more ? page + 1 : page) : res ? Math.min(50, Math.ceil(res.total / res.perPage)) : 0;
   const ads = wantPack ? selectAds(q, loc) : [];
   // "google", "bing"... : on propose d'y aller directement (sous les annonces, au-dessus des résultats)
@@ -116,10 +131,13 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   // aperçu IA (Gemini) : seulement pour les vraies recherches de la première page
   const showAi = tab === "all" && page === 1 && !rival && !showBusiness && !showPack && !!res && wantsOverview(q, res.hits);
 
+  // question ("pourquoi mon enfant ne dort pas") : passage de la meilleure page en tête, comme l'extrait optimisé de Google
+  const answer = tab === "all" && page === 1 && !rival && !showBusiness && res && !webAll ? findAnswer(q, res.hits) : null;
+
   const parsed = parseQuery(q);
   const top = res?.hits[0];
   const showPanel =
-    tab === "all" &&
+    tab === "all" && !officialFor(q) &&
     page === 1 &&
     top &&
     !res?.autoCorrected &&
@@ -206,6 +224,8 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
               {rival && <LeaveCard key={q} rival={rival} />}
 
               {showAi && <AiOverview key={`ai-${q}`} q={q} />}
+
+              {answer && <AnswerBox answer={answer} newTab={prefs.newTab} />}
 
               {showPack && <LocalPack query={q} title={packTitle} center={center} loc={loc}moreHref={`/maps?q=${encodeURIComponent(q)}`} />}
 

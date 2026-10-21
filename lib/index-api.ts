@@ -84,7 +84,7 @@ async function runRemote<K extends keyof IndexOps>(op: K, args: Parameters<Index
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GOOGLANT_INDEX_TOKEN ?? ""}` },
       body: JSON.stringify({ op, args }),
       cache: "no-store",
-      signal: AbortSignal.timeout(op === "home" ? 12_000 : 8_000),
+      signal: AbortSignal.timeout(op === "home" || op === "search" || op === "news" ? 15_000 : 8_000),
     });
     if (!res.ok) {
       console.error(`[googlant] API d'index : ${res.status}`);

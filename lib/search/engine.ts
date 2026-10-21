@@ -290,8 +290,14 @@ function score(db: DatabaseSync, q: ParsedQuery, city?: string): { scored: Score
     const path = d.url.replace(/^https?:\/\/[^/]+/, "");
     const isHome = /^\/?([a-z]{2}(-[a-z]{2})?\/?)?$/i.test(path);
     const label = d.host.replace(/^(www|m|fr)\./, "").split(".")[0].replace(/-/g, "");
-    const named = q.terms.join("") === label || queryFolded.replace(/[^a-z0-9]/g, "") === label;
+    const wanted = queryFolded.replace(/[^a-z0-9]/g, "");
+    const named = q.terms.join("") === label || wanted === label;
+    // "ants" -> ants.gouv.fr : le domaine du site, pas seulement le premier mot de l'adresse
+    const parts = d.host.replace(/^www\./, "").split(".");
+    const siteLabel = parts[parts.length - (/^(gouv|co|com|org|ac|net|asso)$/.test(parts[parts.length - 2] ?? "") && parts.length > 2 ? 3 : 2)]?.replace(/-/g, "");
+    const subOfNamed = !named && parts.length > 2 && (q.terms.join("") === siteLabel || wanted === siteLabel);
     if (named) s *= isHome ? 6 : 2;
+    else if (subOfNamed) s *= 1.5;
     else if (isHome && q.terms.some((t) => d.host.split(/[.-]/).includes(t))) s *= 1.6;
 
     if (cityFolded && fold(`${d.title} ${d.description}`).includes(cityFolded)) s *= 1.15;

@@ -34,6 +34,22 @@ const OPS = new Set<Op>(["search", "news", "images", "suggest", "home", "live", 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type" };
 const MAX_STREAMS = 400;
 
+// mêmes requêtes à quelques secondes d'écart (page + aperçu IA, retour arrière, "Charger plus") : réponse gardée 2 min
+const CACHED = new Set<Op>(["search", "news", "images", "suggest", "pois"]);
+const memo = new Map<string, { at: number; out: unknown }>();
+async function cachedRun(op: Op, args: unknown[]) {
+  if (!CACHED.has(op)) return runLocal(op, args as never);
+  const key = op + JSON.stringify(args);
+  const hit = memo.get(key);
+  if (hit && Date.now() - hit.at < 120_000) return hit.out;
+  const out = await runLocal(op, args as never);
+  if (out !== null) {
+    if (memo.size > 400) memo.delete(memo.keys().next().value!);
+    memo.set(key, { at: Date.now(), out });
+  }
+  return out;
+}
+
 function authorized(req: IncomingMessage): boolean {
   const expected = process.env.GOOGLANT_INDEX_TOKEN;
   if (!expected) return false;
@@ -106,7 +122,7 @@ const server = createServer(async (req, res) => {
       const body = JSON.parse(await readBody(req)) as { op?: Op; args?: unknown[] };
       if (!body.op || !OPS.has(body.op) || !Array.isArray(body.args) || body.args.length > 4) return json(res, 400, { error: "Opération inconnue" });
       if (typeof body.args[0] === "string" && body.args[0].length > 300) return json(res, 400, { error: "Requête trop longue" });
-      const out = await runLocal(body.op, body.args as never);
+      const out = await cachedRun(body.op, body.args);
       return out === null ? json(res, 503, { error: "Index indisponible" }) : json(res, 200, out);
     }
     json(res, 404, { error: "introuvable" });

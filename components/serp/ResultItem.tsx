@@ -35,7 +35,10 @@ export function ResultItem({ hit, index, query, newTab, position }: { hit: Searc
         <a href={doc.url} className="result-site" tabIndex={-1} {...target}>
           <Favicon src={doc.favicon} host={doc.host} />
           <span className="result-site-text">
-            <span className="result-site-name">{doc.siteName}</span>
+            <span className="result-site-name">
+              {doc.siteName}
+              {hit.official && <span className="result-official">Site officiel</span>}
+            </span>
             <span className="result-url">{breadcrumb(doc.url)}</span>
           </span>
         </a>

@@ -21,11 +21,16 @@ export interface AiSource {
   snippet: string;
 }
 
-const KEY = () => process.env.GEMINI_API_KEY ?? "";
+// GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3... : on passe à la clé suivante quand l'une est à court de quota
+const KEYS = () =>
+  Object.keys(process.env)
+    .filter((k) => /^GEMINI_API_KEY\d*$/i.test(k) && process.env[k])
+    .sort((a, b) => (Number(a.replace(/\D/g, "")) || 1) - (Number(b.replace(/\D/g, "")) || 1))
+    .map((k) => process.env[k]!.trim());
 // le premier modèle qui répond est retenu ; GEMINI_MODEL pour en imposer un
-const MODELS = (process.env.GEMINI_MODEL ?? "gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash").split(",").map((m) => m.trim()).filter(Boolean);
+const MODELS = (process.env.GEMINI_MODEL || "gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash").split(",").map((m) => m.trim()).filter(Boolean);
 
-export const aiEnabled = () => !!KEY();
+export const aiEnabled = () => KEYS().length > 0;
 
 /** Recherches où un aperçu a du sens : pas les noms de sites, pas les opérateurs, pas les requêtes d'un mot très court. */
 export function wantsOverview(q: string, hits: SearchHit[]): boolean {
@@ -91,38 +96,93 @@ function remember(q: string, text: string) {
   cache.set(q.toLowerCase(), { at: Date.now(), text });
 }
 
-async function call(model: string, body: unknown): Promise<Response> {
-  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": KEY() },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25_000),
-  });
+// clé à court de quota : mise de côté une minute ; modèle inconnu : oublié ; réglage de "réflexion" accepté par modèle
+const resting = new Map<string, number>();
+const deadModels = new Set<string>();
+const thinkingFor = new Map<string, number>();
+// sans "réflexion" la réponse commence bien plus vite ; les modèles récents prennent thinkingLevel, les 2.x thinkingBudget
+const THINKING = [{ thinkingBudget: 0 }, { thinkingLevel: "minimal" }, { thinkingLevel: "low" }, null];
+let turn = 0;
+
+type Reader = ReadableStreamDefaultReader<string>;
+const FIRST_BYTE_MS = 9_000;
+const FIRST_TEXT_MS = 14_000;
+const BUDGET_MS = 22_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((ok) => setTimeout(() => ok(null), ms))]);
 }
 
-/** Texte de l'aperçu, morceau par morceau. Rien du tout si Gemini refuse, est saturé ou ne sait pas répondre. */
+/** Ouvre un flux Gemini avec la première clé et le premier modèle qui répondent vite. */
+async function open(body: Record<string, unknown>, started: number): Promise<{ reader: Reader; ctrl: AbortController } | null> {
+  const keys = KEYS();
+  const start = turn++ % Math.max(keys.length, 1);
+  const order = [...keys.slice(start), ...keys.slice(0, start)].filter((k) => (resting.get(k) ?? 0) < Date.now());
+  for (const model of MODELS.filter((m) => !deadModels.has(m))) {
+    for (const key of order) {
+      for (let t = thinkingFor.get(model) ?? 0; t < THINKING.length; t++) {
+        if (Date.now() - started > BUDGET_MS) return null;
+        if ((resting.get(key) ?? 0) > Date.now()) break;
+        const ctrl = new AbortController();
+        const gen = body.generationConfig as Record<string, unknown>;
+        const payload = { ...body, generationConfig: THINKING[t] ? { ...gen, thinkingConfig: THINKING[t] } : gen };
+        const res = await withTimeout(
+          fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+            body: JSON.stringify(payload),
+            signal: ctrl.signal,
+          }).catch(() => null),
+          FIRST_BYTE_MS,
+        );
+        if (!res) {
+          ctrl.abort();
+          break; // trop lent : clé suivante
+        }
+        if (res.ok && res.body) {
+          thinkingFor.set(model, t);
+          return { reader: res.body.pipeThrough(new TextDecoderStream()).getReader(), ctrl };
+        }
+        if (res.status === 400) continue; // réglage de réflexion refusé par ce modèle : le suivant
+        if (res.status === 404) {
+          deadModels.add(model);
+          break;
+        }
+        if (res.status === 429 || res.status === 403 || res.status === 401) {
+          resting.set(key, Date.now() + (res.status === 429 ? 60_000 : 3_600_000));
+          console.warn(`[googlant] aperçu IA : clé n°${keys.indexOf(key) + 1} ${res.status === 429 ? "à court de quota" : "refusée"}`);
+        }
+        break;
+      }
+      if (deadModels.has(model)) break;
+    }
+  }
+  return null;
+}
+
+/** Texte de l'aperçu, morceau par morceau. Rien du tout si Gemini refuse, est saturé, trop lent ou ne sait pas répondre. */
 export async function* overview(q: string, hits: SearchHit[]): AsyncGenerator<string> {
-  const base = {
+  const started = Date.now();
+  const body = {
     systemInstruction: { parts: [{ text: SYSTEM }] },
     contents: [{ role: "user", parts: [{ text: prompt(q, hits) }] }],
     generationConfig: { temperature: 0.3, maxOutputTokens: 900 },
   };
-  let res: Response | null = null;
-  for (const model of MODELS) {
-    // sans "réflexion" : la réponse commence bien plus vite
-    res = await call(model, { ...base, generationConfig: { ...base.generationConfig, thinkingConfig: { thinkingBudget: 0 } } }).catch(() => null);
-    if (res?.status === 400) res = await call(model, base).catch(() => null);
-    if (res?.ok) break;
-    if (res?.status === 429) console.warn(`[googlant] aperçu IA : quota Gemini atteint (${model})`);
-  }
-  if (!res?.ok || !res.body) return;
+  const stream = await open(body, started);
+  if (!stream) return;
+  const { reader, ctrl } = stream;
 
-  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
   let text = "";
   let sent = 0;
   for (;;) {
-    const { value, done } = await reader.read();
+    // le modèle "réfléchit" trop longtemps avant d'écrire : on abandonne plutôt que de faire attendre
+    const chunk = sent ? await reader.read() : await withTimeout(reader.read(), Math.max(1_000, FIRST_TEXT_MS - (Date.now() - started)));
+    if (!chunk) {
+      ctrl.abort();
+      return;
+    }
+    const { value, done } = chunk;
     if (done) break;
     buf += value;
     let nl: number;

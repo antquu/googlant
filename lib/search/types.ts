@@ -54,6 +54,8 @@ export interface SearchHit {
   snippet: SnippetPart[];
   clustered?: boolean;
   titleTerms: string[];
+  /** site officiel mis en tête (service public) */
+  official?: boolean;
 }
 
 export interface SearchResponse {
