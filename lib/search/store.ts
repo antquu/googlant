@@ -9,10 +9,12 @@ import type { DatabaseSync } from "node:sqlite";
 import { getMeta, openDb } from "../db/db";
 import { seedIfEmpty } from "../db/import";
 
-const g = globalThis as unknown as { __googlantDb?: DatabaseSync | null };
+const g = globalThis as unknown as { __googlantDb?: DatabaseSync | null; __googlantDbFail?: number };
 
 export function getDb(): DatabaseSync | null {
-  if (g.__googlantDb !== undefined) return g.__googlantDb;
+  if (g.__googlantDb) return g.__googlantDb;
+  // échec récent (base verrouillée au démarrage...) : nouvel essai au bout de 5 s au lieu de rester en panne
+  if (Date.now() - (g.__googlantDbFail ?? 0) < 5_000) return null;
   try {
     const db = openDb();
     if (seedIfEmpty(db, join(process.cwd(), "data", "seed.jsonl.gz"), join(process.cwd(), "crawler", "directory.json"))) {
@@ -22,6 +24,7 @@ export function getDb(): DatabaseSync | null {
   } catch (err) {
     console.error("[googlant] base inaccessible :", err);
     g.__googlantDb = null;
+    g.__googlantDbFail = Date.now();
   }
   return g.__googlantDb;
 }

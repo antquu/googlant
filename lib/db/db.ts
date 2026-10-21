@@ -103,9 +103,9 @@ export function openDb(path = DB_PATH): DatabaseSync {
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`
+    PRAGMA busy_timeout = 8000;
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
-    PRAGMA busy_timeout = 8000;
     PRAGMA temp_store = MEMORY;
     PRAGMA cache_size = -${Math.max(4, Number(process.env.GOOGLANT_DB_CACHE_MB) || 64) * 1000};
   `);

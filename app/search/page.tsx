@@ -90,7 +90,7 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
       : tab === "news"
         ? index("news", q, { perPage: prefs.perPage, city: loc?.city })
         : index("search", q, { page, perPage: prefs.perPage, city: loc?.city, autoCorrect: sp.exact !== "1" }),
-    wantPack ? index("images", q) : null,
+    wantPack ? index("images", q, 12) : null,
     bizEarly,
   ]);
   const packImages = (packRaw ?? []).slice(0, 10).map((i) => ({ src: i.src, alt: i.alt, pageUrl: i.page.url, host: i.page.host }));
@@ -267,7 +267,9 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
           </div>
         )}
       </main>
-      <SiteFooter />
+      <Suspense fallback={null}>
+        <SiteFooter />
+      </Suspense>
     </>
   );
 }

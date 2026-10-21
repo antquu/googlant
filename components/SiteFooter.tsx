@@ -4,7 +4,8 @@
  */
 
 import Link from "next/link";
-import { index } from "@/lib/index-api";
+import { getStats } from "@/lib/home-data";
+import type { IndexStats } from "@/lib/search/store";
 import { FooterStats } from "./FooterStats";
 import { VERSION } from "./Logo";
 
@@ -20,8 +21,8 @@ function explore() {
   ];
 }
 
-export async function SiteFooter() {
-  const stats = await index("stats");
+export async function SiteFooter({ stats: given }: { stats?: IndexStats | null } = {}) {
+  const stats = given !== undefined ? given : await getStats();
   return (
     <footer className="footer">
       <div className="footer-glow" aria-hidden />

@@ -236,7 +236,8 @@ function candidates(db: DatabaseSync, q: ParsedQuery): { list: Candidate[]; tota
   let total = all.length;
   if (q.terms.length > 1) {
     const orMatch = `(${q.terms.map(quote).join(" OR ")})${not}`;
-    total = (db.prepare(`SELECT count(*) AS n FROM pages_fts${siteJoin} WHERE pages_fts MATCH ?`).get(...siteArgs, withCols(orMatch)) as { n: number }).n;
+    // compter au-delà de 5000 coûte cher pour rien : "environ 5 000 résultats" suffit
+    total = (db.prepare(`SELECT count(*) AS n FROM (SELECT 1 FROM pages_fts${siteJoin} WHERE pages_fts MATCH ? LIMIT 5000)`).get(...siteArgs, withCols(orMatch)) as { n: number }).n;
     if (all.length < 60) {
       const partial = run(orMatch).filter((r) => !byId.has(r.id));
       if (partial.length) {
@@ -331,16 +332,18 @@ function clusterPage(page: Scored[]): { s: Scored; clustered: boolean }[] {
 }
 
 export function correct(db: DatabaseSync, q: ParsedQuery): string | undefined {
-  const has = db.prepare("SELECT doc FROM pages_vocab WHERE term = ?");
+  // pages_vocab parcourt les listes de pages de chaque mot lu : vérifier un mot avec MATCH ... LIMIT 1, et ne lire
+  // le vocabulaire que sur les deux premières lettres (une seule lettre = des centaines de milliers de mots)
+  const has = db.prepare("SELECT 1 FROM pages_fts WHERE pages_fts MATCH ? LIMIT 1");
   const near = db.prepare("SELECT term, doc FROM pages_vocab WHERE term >= ? AND term < ? AND doc >= 2");
   let changed = false;
   const fixed = q.text.split(/\s+/).map((w) => {
     const [t] = tokenize(w);
-    if (!t || /\d/.test(t) || has.get(t)) return w;
+    if (!t || t.length < 3 || /\d/.test(t) || has.get(quote(t))) return w;
     const max = t.length <= 4 ? 1 : 2;
     let best: { term: string; doc: number; dist: number } | null = null;
-    const first = t.charAt(0);
-    for (const v of near.all(first, String.fromCharCode(first.charCodeAt(0) + 1)) as { term: string; doc: number }[]) {
+    const head = t.slice(0, 2);
+    for (const v of near.all(head, head.slice(0, -1) + String.fromCharCode(head.charCodeAt(1) + 1)) as { term: string; doc: number }[]) {
       if (Math.abs(v.term.length - t.length) > max) continue;
       const dist = levenshtein(t, v.term, max);
       if (dist <= max && (!best || dist < best.dist || (dist === best.dist && v.doc > best.doc))) best = { ...v, dist };
@@ -445,7 +448,7 @@ export function searchImages(db: DatabaseSync, raw: string, limit = 240): ImageH
   const rows = db
     .prepare(
       `SELECT i.src, i.alt, i.page_id FROM images_fts JOIN images i ON i.id = images_fts.rowid
-       WHERE images_fts MATCH ? ORDER BY bm25(images_fts) LIMIT 900`,
+       WHERE images_fts MATCH ? ORDER BY bm25(images_fts) LIMIT ${limit > 40 ? 900 : 150}`,
     )
     .all(q.terms.map(quote).join(" OR ")) as { src: string; alt: string; page_id: number }[];
   // image présente sur 3 pages ou plus : logo, bandeau ou décor du site, pas une vraie photo
@@ -518,9 +521,12 @@ export function suggest(db: DatabaseSync | null, raw: string, extra: string[] = 
     results.push({ text, score: s + weight - folded.length / 200 });
   };
   for (const e of extra) consider(e, 1.2);
-  if (db) {
+  // 1 ou 2 lettres : des milliers de titres à trier pour rien, les suggestions fixes suffisent
+  if (db && q.length >= 3) {
     const upper = q.slice(0, -1) + String.fromCharCode(q.charCodeAt(q.length - 1) + 1);
-    const rows = db.prepare("SELECT title, rank FROM pages WHERE title_fold >= ? AND title_fold < ? ORDER BY rank DESC LIMIT 40").all(q, upper) as { title: string; rank: number }[];
+    const rows = db
+      .prepare("SELECT title, rank FROM (SELECT title, rank FROM pages WHERE title_fold >= ? AND title_fold < ? LIMIT 3000) ORDER BY rank DESC LIMIT 40")
+      .all(q, upper) as { title: string; rank: number }[];
     for (const r of rows) consider(cleanTitle(r.title), 1 + r.rank);
   }
   return results

@@ -34,20 +34,44 @@ const OPS = new Set<Op>(["search", "news", "images", "suggest", "home", "live", 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type" };
 const MAX_STREAMS = 400;
 
-// mêmes requêtes à quelques secondes d'écart (page + aperçu IA, retour arrière, "Charger plus") : réponse gardée 2 min
-const CACHED = new Set<Op>(["search", "news", "images", "suggest", "pois"]);
+// mêmes requêtes à quelques secondes d'écart (retour arrière, page suivante) : réponse gardée 2 min.
+// Accueil et chiffres, identiques pour tout le monde : la dernière réponse part tout de suite et le calcul
+// est refait en arrière-plan. Si un calcul échoue, l'ancienne réponse est servie plutôt qu'une erreur
+const TTL: Partial<Record<Op, number>> = { search: 120_000, news: 120_000, images: 120_000, suggest: 120_000, pois: 120_000, home: 30_000, stats: 5_000, live: 2_000 };
+const BACKGROUND = new Set<Op>(["home", "stats", "live"]);
 const memo = new Map<string, { at: number; out: unknown }>();
+const running = new Map<string, Promise<unknown>>();
+
+function compute(op: Op, args: unknown[], key: string): Promise<unknown> {
+  let p = running.get(key);
+  if (!p) {
+    p = Promise.resolve()
+      .then(() => runLocal(op, args as never))
+      .then((out) => {
+        if (out !== null) {
+          if (memo.size > 400) for (const [k, v] of memo) if (memo.size > 300 || Date.now() - v.at > 120_000) memo.delete(k);
+          memo.set(key, { at: Date.now(), out });
+        }
+        return out;
+      })
+      .finally(() => running.delete(key));
+    running.set(key, p);
+  }
+  return p;
+}
+
 async function cachedRun(op: Op, args: unknown[]) {
-  if (!CACHED.has(op)) return runLocal(op, args as never);
+  const ttl = TTL[op];
+  if (!ttl) return runLocal(op, args as never);
   const key = op + JSON.stringify(args);
   const hit = memo.get(key);
-  if (hit && Date.now() - hit.at < 120_000) return hit.out;
-  const out = await runLocal(op, args as never);
-  if (out !== null) {
-    if (memo.size > 400) memo.delete(memo.keys().next().value!);
-    memo.set(key, { at: Date.now(), out });
+  if (hit && Date.now() - hit.at < ttl) return hit.out;
+  if (hit && BACKGROUND.has(op)) {
+    setImmediate(() => compute(op, args, key).catch(() => {}));
+    return hit.out;
   }
-  return out;
+  const out = await compute(op, args, key).catch(() => null);
+  return out ?? hit?.out ?? null;
 }
 
 function authorized(req: IncomingMessage): boolean {
@@ -85,7 +109,7 @@ async function tick() {
     ticker = null;
     return;
   }
-  const data = await runLocal("live", [] as never).catch(() => null);
+  const data = await cachedRun("live", []).catch(() => null);
   if (!data) return;
   const body = JSON.stringify(data);
   const chunk = body === last ? ": ping\n\n" : `data: ${body}\n\n`;
@@ -97,7 +121,7 @@ async function stream(req: IncomingMessage, res: ServerResponse) {
   if (streams.size >= MAX_STREAMS) return json(res, 503, { error: "trop de connexions" });
   res.writeHead(200, { ...CORS, "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" });
   res.write("retry: 5000\n\n");
-  const first = await runLocal("live", [] as never).catch(() => null);
+  const first = await cachedRun("live", []).catch(() => null);
   if (first) res.write(`data: ${JSON.stringify(first)}\n\n`);
   streams.add(res);
   req.on("close", () => streams.delete(res));
@@ -113,13 +137,15 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "GET" && path === "/api/live/stream") return await stream(req, res);
     if (req.method === "GET" && path === "/api/live") {
-      const live = await runLocal("live", [] as never);
+      const live = await cachedRun("live", []);
       return live ? json(res, 200, live, "public, max-age=5") : json(res, 503, { stats: null, items: [] });
     }
     if (req.method === "GET" && path === "/health") return json(res, 200, { ok: true, streams: streams.size });
     if (req.method === "POST" && path === "/api/index") {
       if (!authorized(req)) return json(res, 401, { error: "Non autorisé" });
       const body = JSON.parse(await readBody(req)) as { op?: Op; args?: unknown[] };
+      // le site a abandonné entre-temps (délai dépassé) : inutile de calculer pour personne
+      if (res.destroyed || req.socket.destroyed) return;
       if (!body.op || !OPS.has(body.op) || !Array.isArray(body.args) || body.args.length > 4) return json(res, 400, { error: "Opération inconnue" });
       if (typeof body.args[0] === "string" && body.args[0].length > 300) return json(res, 400, { error: "Requête trop longue" });
       const out = await cachedRun(body.op, body.args);
@@ -131,5 +157,8 @@ const server = createServer(async (req, res) => {
   }
 });
 
+// le proxy Funnel réutilise les connexions plus longtemps que les 5 s par défaut de Node
+server.keepAliveTimeout = 65_000;
+server.headersTimeout = 66_000;
 server.listen(PORT, "0.0.0.0", () => console.log(`serveur d'index Googlant sur le port ${PORT}`));
 for (const sig of ["SIGINT", "SIGTERM"] as const) process.on(sig, () => server.close(() => process.exit(0)));
