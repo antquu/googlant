@@ -79,7 +79,8 @@ const SYSTEM = `Tu écris l'"Aperçu IA" d'un moteur de recherche, à partir des
 - Ensuite, si c'est utile, un intertitre "## ..." et une liste "- **Point :** explication" (3 à 5 points), ou un court paragraphe.
 - 220 mots au maximum. Pas de conclusion, pas de formule de politesse.
 - Après chaque information, cite la ou les pages avec [1], [2]... (numéros des pages fournies).
-- N'invente rien qui ne soit pas dans les pages. Si elles ne permettent pas de répondre, écris seulement : AUCUNE`;
+- N'invente rien qui ne soit pas dans les pages. Si elles ne permettent pas de répondre, écris seulement : AUCUNE
+- Tout à la fin, écris une ligne "QUESTIONS:" puis 4 lignes "? Question proche que l'on pourrait aussi se poser | Réponse en 1 à 2 phrases [n]", tirées des pages.`;
 
 type Cached = { at: number; text: string };
 const holder = globalThis as unknown as { __ai?: Map<string, Cached>; __aiBusy?: number };
@@ -105,9 +106,10 @@ const THINKING = [{ thinkingBudget: 0 }, { thinkingLevel: "minimal" }, { thinkin
 let turn = 0;
 
 type Reader = ReadableStreamDefaultReader<string>;
+// comptés depuis le début de la requête (recherche dans l'index comprise), pour rester sous la limite de Vercel
 const FIRST_BYTE_MS = 9_000;
-const FIRST_TEXT_MS = 14_000;
-const BUDGET_MS = 22_000;
+const FIRST_TEXT_MS = 26_000;
+const BUDGET_MS = 20_000;
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([p, new Promise<null>((ok) => setTimeout(() => ok(null), ms))]);
@@ -143,6 +145,13 @@ async function open(body: Record<string, unknown>, started: number): Promise<{ r
           thinkingFor.set(model, t);
           return { reader: res.body.pipeThrough(new TextDecoderStream()).getReader(), ctrl };
         }
+        const why = res.ok ? "" : await res.text().catch(() => "");
+        console.warn(`[googlant] aperçu IA : ${model}, clé n°${keys.indexOf(key) + 1} -> ${res.status} ${why.slice(0, 200)}`);
+        // Google répond 400 (et pas 401) à une clé invalide
+        if (res.status === 400 && /API_KEY_INVALID|API key/i.test(why)) {
+          resting.set(key, Date.now() + 3_600_000);
+          break;
+        }
         if (res.status === 400) continue; // réglage de réflexion refusé par ce modèle : le suivant
         if (res.status === 404) {
           deadModels.add(model);
@@ -150,7 +159,6 @@ async function open(body: Record<string, unknown>, started: number): Promise<{ r
         }
         if (res.status === 429 || res.status === 403 || res.status === 401) {
           resting.set(key, Date.now() + (res.status === 429 ? 60_000 : 3_600_000));
-          console.warn(`[googlant] aperçu IA : clé n°${keys.indexOf(key) + 1} ${res.status === 429 ? "à court de quota" : "refusée"}`);
         }
         break;
       }
@@ -161,15 +169,17 @@ async function open(body: Record<string, unknown>, started: number): Promise<{ r
 }
 
 /** Texte de l'aperçu, morceau par morceau. Rien du tout si Gemini refuse, est saturé, trop lent ou ne sait pas répondre. */
-export async function* overview(q: string, hits: SearchHit[]): AsyncGenerator<string> {
-  const started = Date.now();
+export async function* overview(q: string, hits: SearchHit[], started = Date.now()): AsyncGenerator<string> {
   const body = {
     systemInstruction: { parts: [{ text: SYSTEM }] },
     contents: [{ role: "user", parts: [{ text: prompt(q, hits) }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 900 },
+    generationConfig: { temperature: 0.3, maxOutputTokens: 1400 },
   };
   const stream = await open(body, started);
-  if (!stream) return;
+  if (!stream) {
+    console.warn(`[googlant] aperçu IA : aucune clé ni aucun modèle n'a répondu (${KEYS().length} clé(s))`);
+    return;
+  }
   const { reader, ctrl } = stream;
 
   let buf = "";

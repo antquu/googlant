@@ -9,19 +9,24 @@ import type { NextRequest } from "next/server";
 import { aiEnabled, cached, overview, toSources, wantsOverview } from "@/lib/ai/overview";
 import { index } from "@/lib/index-api";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const none = () => new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 
 export async function GET(req: NextRequest) {
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 200);
   if (!q || !aiEnabled()) return none();
-  const res = await index("search", q, { page: 1, perPage: 8, autoCorrect: true });
+  const started = Date.now();
+  // l'index lent ne doit pas manger tout le temps de Gemini : au-delà de 8 s, pas d'aperçu
+  const res = await Promise.race([
+    index("search", q, { page: 1, perPage: 8, autoCorrect: true }),
+    new Promise<null>((ok) => setTimeout(() => ok(null), 8_000)),
+  ]);
   const hits = res?.hits ?? [];
   if (!wantsOverview(q, hits)) return none();
 
   const done = cached(q);
-  const parts = done ? null : overview(q, hits);
+  const parts = done ? null : overview(q, hits, started);
   // on attend le premier morceau : si Gemini ne répond pas (quota...), rien n'est envoyé ni gardé en cache
   const first = done ?? (await parts!.next().catch(() => ({ done: true, value: undefined }))).value;
   if (!first) return none();
