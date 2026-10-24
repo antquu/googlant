@@ -22,7 +22,7 @@ export interface HomeData {
 export type IndexOps = {
   search: (q: string, opts: SearchOptions) => SearchResponse;
   news: (q: string, opts: SearchOptions) => SearchResponse;
-  images: (q: string) => ImageHit[];
+  images: (q: string, limit?: number) => ImageHit[];
   suggest: (q: string, extra: string[]) => string[];
   home: () => HomeData;
   live: () => { stats: IndexStats; items: LiveEvent[] };
@@ -51,7 +51,7 @@ export async function runLocal<K extends keyof IndexOps>(op: K, args: Parameters
   const ops: Omit<IndexOps, "pois" | "poi" | "poisIn"> = {
     search: (q, o) => engine.search(db, q, o),
     news: (q, o) => engine.searchNews(db, q, o),
-    images: (q) => engine.searchImages(db, q),
+    images: (q, limit) => engine.searchImages(db, q, Math.min(Number(limit) || 240, 240)),
     suggest: (q, extra) => engine.suggest(db, q, extra, 8),
     home: () => {
       const sel = home.homeSelections(db);

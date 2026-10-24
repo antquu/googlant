@@ -27,7 +27,6 @@ import { KnowledgePanel, SideAd } from "@/components/serp/Aside";
 import { ImageGrid } from "@/components/serp/ImageGrid";
 import { ImagePack } from "@/components/serp/ImagePack";
 import { LeaveCard } from "@/components/serp/LeaveCard";
-import { LoadMore } from "@/components/serp/LoadMore";
 import { WhyPanel } from "@/components/serp/WhyPanel";
 import { AiOverview } from "@/components/serp/AiOverview";
 import { AnswerBox } from "@/components/serp/AnswerBox";
@@ -91,7 +90,7 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
       : tab === "news"
         ? index("news", q, { perPage: prefs.perPage, city: loc?.city })
         : index("search", q, { page, perPage: prefs.perPage, city: loc?.city, autoCorrect: sp.exact !== "1" }),
-    wantPack ? index("images", q) : null,
+    wantPack ? index("images", q, 12) : null,
     bizEarly,
   ]);
   const packImages = (packRaw ?? []).slice(0, 10).map((i) => ({ src: i.src, alt: i.alt, pageUrl: i.page.url, host: i.page.host }));
@@ -241,11 +240,8 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
 
               {!hits.length && !showPack && <NoResults q={q} />}
 
-              {/* résultats de Googlant : « Charger plus » ; résultats web (Brave) : pages classiques */}
-              {tab === "all" && !webAll && hits.length > 0 && (
-                <LoadMore key={q} q={q} startPage={page} pages={pages} perPage={prefs.perPage} newTab={prefs.newTab} shown={hits.map((h) => h.doc.url)} />
-              )}
-              {tab === "all" && webAll && <Pager page={page} pages={pages} href={pageHref} />}
+              {/* pages "Gooooooglant" en bas ; « Charger plus » reste pour les images */}
+              {tab === "all" && hits.length > 0 && <Pager page={page} pages={pages} href={pageHref} />}
 
               {res.related.length > 0 && page === 1 && tab === "all" && (
                 <section className="related">
@@ -271,7 +267,9 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
           </div>
         )}
       </main>
-      <SiteFooter />
+      <Suspense fallback={null}>
+        <SiteFooter />
+      </Suspense>
     </>
   );
 }

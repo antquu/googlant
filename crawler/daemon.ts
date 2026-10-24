@@ -5,6 +5,7 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { setPriority } from "node:os";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
@@ -30,7 +31,7 @@ const { values: opts } = parseArgs({
     "max-frontier": { type: "string", default: "5000000" },
     scope: { type: "string", default: "all" },
     langs: { type: "string", default: "fr,en" },
-    "pagerank-every": { type: "string", default: "15" },
+    "pagerank-every": { type: "string", default: "60" },
     quiet: { type: "boolean", default: false },
     // plusieurs crawlers sur la même base : chacun s'occupe d'une part des sites (ex. --shard 0/2 et --shard 1/2)
     shard: { type: "string", default: "0/1" },
@@ -792,6 +793,10 @@ function maybePageRank() {
   const tsx = fileURLToPath(new URL("../node_modules/tsx/dist/cli.mjs", import.meta.url));
   const job = fileURLToPath(new URL("./pagerank-job.ts", import.meta.url));
   const child = spawn(process.execPath, [tsx, job], { stdio: ["ignore", "inherit", "inherit"] });
+  // il relit et réécrit toute la base : en basse priorité, pour laisser passer les recherches
+  try {
+    setPriority(child.pid!, 19);
+  } catch {}
   child.on("exit", () => {
     rankRunning = false;
     lastRank = Date.now();
