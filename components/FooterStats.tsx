@@ -19,7 +19,9 @@ export function FooterStats({ initial }: { initial: LiveStats }) {
     const id = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(id);
   }, []);
-  const online = stats.crawlerAt !== null && now !== null && now - stats.crawlerAt < 60_000;
+  // 1 000 000 de pages : le crawler est arrêté pour de bon
+  const finished = stats.docs >= 1_000_000;
+  const online = !finished && stats.crawlerAt !== null && now !== null && now - stats.crawlerAt < 60_000;
   // "Index" = dernière activité du crawler (publiée toutes les 5 s), pas le dernier calcul du PageRank
   const indexed = stats.crawlerAt ? timeAgo(new Date(stats.crawlerAt).toISOString(), now ?? stats.crawlerAt) : stats.builtAt ? timeAgo(stats.builtAt) : "—";
 
@@ -40,17 +42,13 @@ export function FooterStats({ initial }: { initial: LiveStats }) {
       <div>
         <dt>Index</dt>
         <dd>
-          {online && <span className="live-dot" aria-hidden />} {online ? "à l'instant" : indexed}
+          {finished ? "Merci d'avoir visité ce projet" : (
+            <>
+              {online && <span className="live-dot" aria-hidden />} {online ? "à l'instant" : indexed}
+            </>
+          )}
         </dd>
       </div>
-      {online && (
-        <div>
-          <dt>Pages / min</dt>
-          <dd>
-            <LiveNumber value={stats.pagesPerMinute} />
-          </dd>
-        </div>
-      )}
     </dl>
   );
 }

@@ -125,6 +125,8 @@ let lastActivity = Date.now();
 let inFlight = 0;
 // dernier PageRank connu : pas de recalcul à chaque redémarrage
 let lastRank = getMeta<{ at: number }>(db, "pagerank")?.at ?? 0;
+// fin du projet : à 1 000 000 de pages, le crawler s'arrête pour de bon
+const PAGE_LIMIT = 1_000_000;
 let lastRefill = 0;
 let lastCount = 0;
 let pagesSinceRank = 0;
@@ -727,6 +729,11 @@ async function runGo(bin: string) {
   });
 
   while (!stopping) {
+    if (counters.pages >= PAGE_LIMIT) {
+      console.log(c.bold(`
+${PAGE_LIMIT.toLocaleString("fr-FR")} pages indexées : le crawler s'arrête.`));
+      process.exit(0);
+    }
     let sent = 0;
     while (inflight.size < target) {
       const job = take();
@@ -809,6 +816,12 @@ process.on("uncaughtException", (err) => log(c.red("erreur réseau"), c.dim(err.
 process.on("unhandledRejection", (err) => log(c.red("erreur"), c.dim(String(err).slice(0, 120))));
 
 async function main() {
+  // objectif atteint : on reste à l'arrêt (sans quitter, sinon systemd relancerait en boucle)
+  if (counters.pages >= PAGE_LIMIT) {
+    console.log(`${counters.pages.toLocaleString("fr-FR")} pages indexées : objectif atteint, le crawler ne tourne plus.`);
+    setInterval(() => {}, 1 << 30);
+    return;
+  }
   const seeds = MAIN ? loadSeeds() : { total: 0, added: 0 };
   const dir = MAIN ? importDirectory(db, "crawler/directory.json") : 0;
   console.log(c.bold(`\nGooglantBot — crawler permanent${SHARDS > 1 ? ` (part ${SHARD + 1}/${SHARDS})` : ""}`));
