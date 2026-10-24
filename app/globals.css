@@ -6180,3 +6180,11 @@ button.biz-photo {
   color: hsl(var(--fg-reading));
   font: 400 14.5px/1.6 var(--sans);
 }
+.paa-src {
+  display: inline-block;
+  margin-left: 8px;
+  color: hsl(var(--url));
+  font-size: 12px;
+  text-decoration: none;
+}
+.paa-src:hover { text-decoration: underline; }

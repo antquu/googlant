@@ -28,7 +28,8 @@ import { ImageGrid } from "@/components/serp/ImageGrid";
 import { ImagePack } from "@/components/serp/ImagePack";
 import { LeaveCard } from "@/components/serp/LeaveCard";
 import { WhyPanel } from "@/components/serp/WhyPanel";
-import { AiOverview } from "@/components/serp/AiOverview";
+import { AiOverview, Questions } from "@/components/serp/AiOverview";
+import { indexQuestions } from "@/lib/search/questions";
 import { AnswerBox } from "@/components/serp/AnswerBox";
 import { findAnswer } from "@/lib/search/answer";
 import { officialFor, withOfficial } from "@/lib/search/official";
@@ -133,6 +134,9 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
     ? { sources: toSources(res.hits), first: streamOverview(q, res.hits) }
     : null;
 
+  // "Autres questions" tirées de l'index : seules si pas d'aperçu IA, sinon en secours de celui-ci
+  const faq = tab === "all" && page === 1 && !rival && !showBusiness && res && !webAll ? indexQuestions(q, res.hits) : [];
+
   // question ("pourquoi mon enfant ne dort pas") : passage de la meilleure page en tête, comme l'extrait optimisé de Google
   const answer = tab === "all" && page === 1 && !rival && !showBusiness && res && !webAll ? findAnswer(q, res.hits) : null;
 
@@ -225,7 +229,7 @@ async function Results({ sp }: { sp: Awaited<SP> }) {
 
               {rival && <LeaveCard key={q} rival={rival} />}
 
-              {ai && <AiOverview key={`ai-${q}`} q={q} {...ai} />}
+              {ai ? <AiOverview key={`ai-${q}`} q={q} {...ai} fallback={faq} /> : faq.length > 0 && <Questions items={faq} />}
 
               {answer && <AnswerBox answer={answer} newTab={prefs.newTab} />}
 

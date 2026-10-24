@@ -14,6 +14,8 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { Worker } from "node:worker_threads";
+import type * as Api from "../lib/index-api.ts";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 // mêmes variables que le site (.env.local), sans dépendre de Next.js pour les lire
@@ -26,8 +28,47 @@ for (const file of [".env.local", ".env"]) {
 }
 delete process.env.GOOGLANT_INDEX_URL; // ce serveur EST l'index : toujours la base locale
 
-const { runLocal } = await import("../lib/index-api.ts");
-type Op = Parameters<typeof runLocal>[0];
+type Op = Parameters<typeof Api.runLocal>[0];
+
+// recherches réparties sur plusieurs threads : une requête lente (disque froid) ne bloque plus les autres
+const POOL = Math.max(1, Number(process.env.GOOGLANT_INDEX_THREADS) || 3);
+type Job = { resolve: (v: unknown) => void; reject: (e: Error) => void; slot: number };
+const workers: { w: Worker; busy: number }[] = [];
+const jobs = new Map<number, Job>();
+let nextId = 0;
+function spawn(i: number) {
+  const w = new Worker(new URL("./index-worker.ts", import.meta.url));
+  w.on("message", ({ id, out, error }: { id: number; out?: unknown; error?: string }) => {
+    const job = jobs.get(id);
+    jobs.delete(id);
+    workers[i].busy--;
+    if (error) job?.reject(new Error(error));
+    else job?.resolve(out ?? null);
+  });
+  // thread tombé : ses requêtes échouent, un nouveau prend sa place
+  w.on("error", (err) => console.error("[googlant] thread d'index :", err));
+  w.on("exit", () => {
+    for (const [id, job] of jobs) {
+      if (job.slot !== i) continue;
+      jobs.delete(id);
+      job.reject(new Error("thread arrêté"));
+    }
+    setTimeout(() => spawn(i), 1000);
+  });
+  workers[i] = { w, busy: 0 };
+}
+for (let i = 0; i < POOL; i++) spawn(i);
+
+function runLocal(op: Op, args: never): Promise<unknown> {
+  const i = workers.reduce((a, b, j) => (b.busy < workers[a].busy ? j : a), 0);
+  const slot = workers[i];
+  const id = ++nextId;
+  slot.busy++;
+  return new Promise((resolve, reject) => {
+    jobs.set(id, { resolve, reject, slot: i });
+    slot.w.postMessage({ id, op, args });
+  });
+}
 
 const PORT = Number(process.env.PORT ?? 3000);
 const OPS = new Set<Op>(["search", "news", "images", "suggest", "home", "live", "stats", "siblings", "submit", "pois", "poi", "poisIn"]);

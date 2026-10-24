@@ -117,7 +117,9 @@ function split(full: string): { main: string; questions: { q: string; a: string 
   return { main, questions };
 }
 
-function Questions({ items, sources }: { items: { q: string; a: string }[]; sources: AiSource[] }) {
+type QA = { q: string; a: string; url?: string; host?: string };
+
+export function Questions({ items, sources = [] }: { items: QA[]; sources?: AiSource[] }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section className="paa" aria-label="Autres questions">
@@ -130,14 +132,24 @@ function Questions({ items, sources }: { items: { q: string; a: string }[]; sour
               <ChevronDown size={18} />
             </i>
           </button>
-          {open === i && <p>{inline(it.a, sources, `paa${i}`)}</p>}
+          {open === i && (
+            <p>
+              {inline(it.a, sources, `paa${i}`)}
+              {it.url && (
+                <a className="paa-src" href={it.url} target="_blank" rel="noopener">
+                  {it.host}
+                </a>
+              )}
+            </p>
+          )}
         </div>
       ))}
     </section>
   );
 }
 
-export function AiOverview({ q, sources, first }: { q: string; sources: AiSource[]; first: Promise<AiPart> }) {
+// fallback : questions tirées de l'index, montrées si Gemini ne répond pas ou n'en propose pas
+export function AiOverview({ q, sources, first, fallback = [] }: { q: string; sources: AiSource[]; first: Promise<AiPart>; fallback?: QA[] }) {
   const [state, setState] = useState<"loading" | "streaming" | "done" | "none">("loading");
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
@@ -186,7 +198,7 @@ export function AiOverview({ q, sources, first }: { q: string; sources: AiSource
     if (body.current) setTall(body.current.scrollHeight > 250);
   }, [text]);
 
-  if (state === "none") return null;
+  if (state === "none") return fallback.length ? <Questions items={fallback} /> : null;
   const { main, questions } = split(text);
 
   const copy = async () => {
@@ -284,7 +296,7 @@ export function AiOverview({ q, sources, first }: { q: string; sources: AiSource
           </div>
         )}
       </section>
-      {state === "done" && questions.length > 0 && <Questions items={questions} sources={sources} />}
+      {state === "done" && (questions.length > 0 ? <Questions items={questions} sources={sources} /> : fallback.length > 0 && <Questions items={fallback} />)}
     </>
   );
 }

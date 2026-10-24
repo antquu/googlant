@@ -830,6 +830,13 @@ async function main() {
     }, 2000),
     setInterval(publishStats, 5000),
     setInterval(() => MAIN && q.trimEvents.run(), 60_000),
+    // le journal d'écriture (WAL) ne rétrécit jamais tout seul : vidé dans la base toutes les 5 min (il avait rempli le disque)
+    setInterval(() => {
+      if (!MAIN) return;
+      try {
+        db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      } catch {}
+    }, 300_000),
     // chien de garde : plus aucune page traitée depuis 10 min alors que la file n'est pas vide -> redémarrage (systemd/pm2 relancent)
     setInterval(() => {
       if (Date.now() - lastActivity > 10 * 60_000 && counters.queued > 0) {
