@@ -127,6 +127,7 @@ let inFlight = 0;
 let lastRank = getMeta<{ at: number }>(db, "pagerank")?.at ?? 0;
 // fin du projet : à 1 000 000 de pages, le crawler s'arrête pour de bon
 const PAGE_LIMIT = 1_000_000;
+const DONE_CODE = 64;
 let lastRefill = 0;
 let lastCount = 0;
 let pagesSinceRank = 0;
@@ -732,7 +733,7 @@ async function runGo(bin: string) {
     if (counters.pages >= PAGE_LIMIT) {
       console.log(c.bold(`
 ${PAGE_LIMIT.toLocaleString("fr-FR")} pages indexées : le crawler s'arrête.`));
-      process.exit(0);
+      process.exit(DONE_CODE);
     }
     let sent = 0;
     while (inflight.size < target) {
@@ -816,11 +817,10 @@ process.on("uncaughtException", (err) => log(c.red("erreur réseau"), c.dim(err.
 process.on("unhandledRejection", (err) => log(c.red("erreur"), c.dim(String(err).slice(0, 120))));
 
 async function main() {
-  // objectif atteint : on reste à l'arrêt (sans quitter, sinon systemd relancerait en boucle)
+  // objectif atteint : le crawler s'arrête et systemd ne le relance pas (RestartPreventExitStatus=64), la RAM est libérée
   if (counters.pages >= PAGE_LIMIT) {
     console.log(`${counters.pages.toLocaleString("fr-FR")} pages indexées : objectif atteint, le crawler ne tourne plus.`);
-    setInterval(() => {}, 1 << 30);
-    return;
+    process.exit(DONE_CODE);
   }
   const seeds = MAIN ? loadSeeds() : { total: 0, added: 0 };
   const dir = MAIN ? importDirectory(db, "crawler/directory.json") : 0;

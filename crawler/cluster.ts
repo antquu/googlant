@@ -32,6 +32,12 @@ function start(i: number) {
   children.set(i, child);
   child.on("exit", (code) => {
     children.delete(i);
+    // code 64 : 1 000 000 de pages atteint, tout le crawler s'arrête pour de bon
+    if (code === 64) {
+      stopping = true;
+      for (const c of children.values()) c.kill("SIGTERM");
+      process.exit(64);
+    }
     if (stopping) {
       if (!children.size) process.exit(0);
       return;

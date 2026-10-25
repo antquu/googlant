@@ -132,7 +132,8 @@ async function HomeSections() {
         </section>
       )}
 
-      <SubmitSite />
+      {/* 1 000 000 de pages : le crawler est arrêté, on ne propose plus d'ajouter de site */}
+      {(!stats || stats.docs < 1_000_000) && <SubmitSite />}
     </div>
   );
 }

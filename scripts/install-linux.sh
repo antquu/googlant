@@ -72,6 +72,7 @@ Environment="NODE_OPTIONS=--disable-warning=ExperimentalWarning --max-old-space-
 ExecStart=$NODE_BIN $APP_DIR/node_modules/tsx/dist/cli.mjs crawler/cluster.ts --quiet --shards 1 --concurrency 40 --max-conns 40 --conn-rate 10 --night 00:30-05:45 --night-concurrency 150 --night-max-conns 150 --night-conn-rate 25
 Restart=always
 RestartSec=10
+RestartPreventExitStatus=64
 KillSignal=SIGINT
 TimeoutStopSec=40
 Nice=5
